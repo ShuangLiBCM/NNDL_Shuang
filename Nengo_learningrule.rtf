@@ -1,0 +1,1598 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf470
+{\fonttbl\f0\fnil\fcharset0 Consolas-Bold;\f1\fnil\fcharset0 Consolas;\f2\fnil\fcharset0 Consolas-Italic;
+}
+{\colortbl;\red255\green255\blue255;\red49\green49\blue49;\red67\green67\blue67;\red38\green38\blue38;
+\red37\green162\blue78;\red53\green65\blue117;\red210\green0\blue53;\red133\green0\blue2;\red135\green135\blue135;
+\red14\green114\blue164;\red135\green136\blue117;\red17\green137\blue135;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs24 \cf2 \expnd0\expndtw0\kerning0
+import
+\f1\b0  \cf3 numpy\cf2  
+\f0\b as
+\f1\b0  \cf3 np\cf2 \
+\
+
+\f0\b from
+\f1\b0  \cf3 nengo.builder\cf2  
+\f0\b import
+\f1\b0  \cf4 Builder\cf2 , \cf4 Operator\cf2 , \cf4 Signal\cf2 \
+
+\f0\b from
+\f1\b0  \cf3 nengo.builder.operator\cf2  
+\f0\b import
+\f1\b0  \cf4 DotInc\cf2 , \cf4 ElementwiseInc\cf2 , \cf4 Reset\cf2 \
+
+\f0\b from
+\f1\b0  \cf3 nengo.connection\cf2  
+\f0\b import
+\f1\b0  \cf4 LearningRule\cf2 \
+
+\f0\b from
+\f1\b0  \cf3 nengo.ensemble\cf2  
+\f0\b import
+\f1\b0  \cf4 Ensemble\cf2 , \cf4 Neurons\cf2 \
+
+\f0\b from
+\f1\b0  \cf3 nengo.exceptions\cf2  
+\f0\b import
+\f1\b0  \cf4 BuildError\cf2 \
+
+\f0\b from
+\f1\b0  \cf3 nengo.learning_rules\cf2  
+\f0\b import
+\f1\b0  \cf4 BCM\cf2 , \cf4 Oja\cf2 , \cf4 PES\cf2 , \cf4 Voja\cf2 \
+
+\f0\b from
+\f1\b0  \cf3 nengo.node\cf2  
+\f0\b import
+\f1\b0  \cf4 Node\cf2 \
+
+\f0\b from
+\f1\b0  \cf3 nengo.synapses\cf2  
+\f0\b import
+\f1\b0  \cf4 Lowpass\cf2 \
+\
+\
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://pythonhosted.org/nengo/backend_api.html#nengo.builder.learning_rules.SimBCM"}}{\fldrslt 
+\fs20 \cf5 [docs]}}
+\fs20 \cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs24 \cf2 class
+\f1\b0  
+\f0\b \cf6 SimBCM
+\f1\b0 \cf2 (\cf4 Operator\cf2 ):\
+    \cf7 """Calculate connection weight change according to the BCM rule.\cf2 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7     Implements the Bienenstock-Cooper-Munroe learning rule of the form\cf2 \
+\
+\cf7     .. math:: \\Delta \\omega_\{ij\} = \\kappa a_j (a_j - \\\\theta_j) a_i\cf2 \
+\
+\cf7     where\cf2 \
+\
+\cf7     * :math:`\\kappa` is a scalar learning rate,\cf2 \
+\cf7     * :math:`a_j` is the activity of a postsynaptic neuron,\cf2 \
+\cf7     * :math:`\\\\theta_j` is an estimate of the average :math:`a_j`, and\cf2 \
+\cf7     * :math:`a_i` is the activity of a presynaptic neuron.\cf2 \
+\
+\cf7     Parameters\cf2 \
+\cf7     ----------\cf2 \
+\cf7     pre_filtered : Signal\cf2 \
+\cf7         The presynaptic activity, :math:`a_i`.\cf2 \
+\cf7     post_filtered : Signal\cf2 \
+\cf7         The postsynaptic activity, :math:`a_j`.\cf2 \
+\cf7     theta : Signal\cf2 \
+\cf7         The modification threshold, :math:`\\\\theta_j`.\cf2 \
+\cf7     delta : Signal\cf2 \
+\cf7         The synaptic weight change to be applied, :math:`\\Delta \\omega_\{ij\}`.\cf2 \
+\cf7     learning_rate : float\cf2 \
+\cf7         The scalar learning rate, :math:`\\kappa`.\cf2 \
+\cf7     tag : str, optional (Default: None)\cf2 \
+\cf7         A label associated with the operator, for debugging purposes.\cf2 \
+\
+\cf7     Attributes\cf2 \
+\cf7     ----------\cf2 \
+\cf7     delta : Signal\cf2 \
+\cf7         The synaptic weight change to be applied, :math:`\\Delta \\omega_\{ij\}`.\cf2 \
+\cf7     learning_rate : float\cf2 \
+\cf7         The scalar learning rate, :math:`\\kappa`.\cf2 \
+\cf7     post_filtered : Signal\cf2 \
+\cf7         The postsynaptic activity, :math:`a_j`.\cf2 \
+\cf7     pre_filtered : Signal\cf2 \
+\cf7         The presynaptic activity, :math:`a_i`.\cf2 \
+\cf7     tag : str or None\cf2 \
+\cf7         A label associated with the operator, for debugging purposes.\cf2 \
+\cf7     theta : Signal\cf2 \
+\cf7         The modification threshold, :math:`\\\\theta_j`.\cf2 \
+\
+\cf7     Notes\cf2 \
+\cf7     -----\cf2 \
+\cf7     1. sets ``[]``\cf2 \
+\cf7     2. incs ``[]``\cf2 \
+\cf7     3. reads ``[pre_filtered, post_filtered, theta]``\cf2 \
+\cf7     4. updates ``[delta]``\cf2 \
+\cf7     """\cf2 \
+\
+    
+\f0\b def
+\f1\b0  
+\f0\b \cf8 __init__
+\f1\b0 \cf2 (\cf9 self\cf2 , \cf4 pre_filtered\cf2 , \cf4 post_filtered\cf2 , \cf4 theta\cf2 , \cf4 delta\cf2 ,\
+                 \cf4 learning_rate\cf2 , \cf4 tag
+\f0\b \cf2 =
+\f1\b0 \cf9 None\cf2 ):\
+        \cf10 super\cf2 (\cf4 SimBCM\cf2 , \cf9 self\cf2 )
+\f0\b .
+\f1\b0 \cf4 __init__\cf2 (\cf4 tag
+\f0\b \cf2 =
+\f1\b0 \cf4 tag\cf2 )\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 pre_filtered\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 post_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 post_filtered\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 theta\cf2  
+\f0\b =
+\f1\b0  \cf4 theta\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 delta\cf2  
+\f0\b =
+\f1\b0  \cf4 delta\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rate\cf2  
+\f0\b =
+\f1\b0  \cf4 learning_rate\cf2 \
+\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 sets\cf2  
+\f0\b =
+\f1\b0  []\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 incs\cf2  
+\f0\b =
+\f1\b0  []\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 reads\cf2  
+\f0\b =
+\f1\b0  [\cf4 pre_filtered\cf2 , \cf4 post_filtered\cf2 , \cf4 theta\cf2 ]\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 updates\cf2  
+\f0\b =
+\f1\b0  [\cf4 delta\cf2 ]\
+\
+    
+\f0\b def
+\f1\b0  
+\f0\b \cf8 _descstr
+\f1\b0 \cf2 (\cf9 self\cf2 ):\
+        
+\f0\b return
+\f1\b0  \cf7 'pre=%s, post=%s -> %s'\cf2  
+\f0\b %
+\f1\b0  (\
+            \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_filtered\cf2 , \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 post_filtered\cf2 , \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 delta\cf2 )\
+\
+    
+\f0\b def
+\f1\b0  
+\f0\b \cf8 make_step
+\f1\b0 \cf2 (\cf9 self\cf2 , \cf4 signals\cf2 , \cf4 dt\cf2 , \cf4 rng\cf2 ):\
+        \cf4 pre_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_filtered\cf2 ]\
+        \cf4 post_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 post_filtered\cf2 ]\
+        \cf4 theta\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 theta\cf2 ]\
+        \cf4 delta\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 delta\cf2 ]\
+        \cf4 alpha\cf2  
+\f0\b =
+\f1\b0  \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rate\cf2  
+\f0\b *
+\f1\b0  \cf4 dt\cf2 \
+\
+        
+\f0\b def
+\f1\b0  
+\f0\b \cf8 step_simbcm
+\f1\b0 \cf2 ():\
+            \cf4 delta\cf2 [
+\f0\b ...
+\f1\b0 ] 
+\f0\b =
+\f1\b0  \cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 outer\cf2 (\
+                \cf4 alpha\cf2  
+\f0\b *
+\f1\b0  \cf4 post_filtered\cf2  
+\f0\b *
+\f1\b0  (\cf4 post_filtered\cf2  
+\f0\b -
+\f1\b0  \cf4 theta\cf2 ), \cf4 pre_filtered\cf2 )\
+        
+\f0\b return
+\f1\b0  \cf4 step_simbcm\cf2 \
+\
+\
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://pythonhosted.org/nengo/backend_api.html#nengo.builder.learning_rules.SimOja"}}{\fldrslt 
+\fs20 \cf5 [docs]}}
+\fs20 \cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs24 \cf2 class
+\f1\b0  
+\f0\b \cf6 SimOja
+\f1\b0 \cf2 (\cf4 Operator\cf2 ):\
+    \cf7 """Calculate connection weight change according to the Oja rule.\cf2 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7     Implements the Oja learning rule of the form\cf2 \
+\
+\cf7     .. math:: \\Delta \\omega_\{ij\} = \\kappa (a_i a_j - \\\\beta a_j^2 \\omega_\{ij\})\cf2 \
+\
+\cf7     where\cf2 \
+\
+\cf7     * :math:`\\kappa` is a scalar learning rate,\cf2 \
+\cf7     * :math:`a_i` is the activity of a presynaptic neuron,\cf2 \
+\cf7     * :math:`a_j` is the activity of a postsynaptic neuron,\cf2 \
+\cf7     * :math:`\\\\beta` is a scalar forgetting rate, and\cf2 \
+\cf7     * :math:`\\omega_\{ij\}` is the connection weight between the two neurons.\cf2 \
+\
+\cf7     Parameters\cf2 \
+\cf7     ----------\cf2 \
+\cf7     pre_filtered : Signal\cf2 \
+\cf7         The presynaptic activity, :math:`a_i`.\cf2 \
+\cf7     post_filtered : Signal\cf2 \
+\cf7         The postsynaptic activity, :math:`a_j`.\cf2 \
+\cf7     weights : Signal\cf2 \
+\cf7         The connection weight matrix, :math:`\\omega_\{ij\}`.\cf2 \
+\cf7     delta : Signal\cf2 \
+\cf7         The synaptic weight change to be applied, :math:`\\Delta \\omega_\{ij\}`.\cf2 \
+\cf7     learning_rate : float\cf2 \
+\cf7         The scalar learning rate, :math:`\\kappa`.\cf2 \
+\cf7     beta : float\cf2 \
+\cf7         The scalar forgetting rate, :math:`\\\\beta`.\cf2 \
+\cf7     tag : str, optional (Default: None)\cf2 \
+\cf7         A label associated with the operator, for debugging purposes.\cf2 \
+\
+\cf7     Attributes\cf2 \
+\cf7     ----------\cf2 \
+\cf7     beta : float\cf2 \
+\cf7         The scalar forgetting rate, :math:`\\\\beta`.\cf2 \
+\cf7     delta : Signal\cf2 \
+\cf7         The synaptic weight change to be applied, :math:`\\Delta \\omega_\{ij\}`.\cf2 \
+\cf7     learning_rate : float\cf2 \
+\cf7         The scalar learning rate, :math:`\\kappa`.\cf2 \
+\cf7     post_filtered : Signal\cf2 \
+\cf7         The postsynaptic activity, :math:`a_j`.\cf2 \
+\cf7     pre_filtered : Signal\cf2 \
+\cf7         The presynaptic activity, :math:`a_i`.\cf2 \
+\cf7     tag : str or None\cf2 \
+\cf7         A label associated with the operator, for debugging purposes.\cf2 \
+\cf7     weights : Signal\cf2 \
+\cf7         The connection weight matrix, :math:`\\omega_\{ij\}`.\cf2 \
+\
+\cf7     Notes\cf2 \
+\cf7     -----\cf2 \
+\cf7     1. sets ``[]``\cf2 \
+\cf7     2. incs ``[]``\cf2 \
+\cf7     3. reads ``[pre_filtered, post_filtered, weights]``\cf2 \
+\cf7     4. updates ``[delta]``\cf2 \
+\cf7     """\cf2 \
+\
+    
+\f0\b def
+\f1\b0  
+\f0\b \cf8 __init__
+\f1\b0 \cf2 (\cf9 self\cf2 , \cf4 pre_filtered\cf2 , \cf4 post_filtered\cf2 , \cf4 weights\cf2 , \cf4 delta\cf2 ,\
+                 \cf4 learning_rate\cf2 , \cf4 beta\cf2 , \cf4 tag
+\f0\b \cf2 =
+\f1\b0 \cf9 None\cf2 ):\
+        \cf10 super\cf2 (\cf4 SimOja\cf2 , \cf9 self\cf2 )
+\f0\b .
+\f1\b0 \cf4 __init__\cf2 (\cf4 tag
+\f0\b \cf2 =
+\f1\b0 \cf4 tag\cf2 )\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 pre_filtered\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 post_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 post_filtered\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 weights\cf2  
+\f0\b =
+\f1\b0  \cf4 weights\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 delta\cf2  
+\f0\b =
+\f1\b0  \cf4 delta\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rate\cf2  
+\f0\b =
+\f1\b0  \cf4 learning_rate\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 beta\cf2  
+\f0\b =
+\f1\b0  \cf4 beta\cf2 \
+\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 sets\cf2  
+\f0\b =
+\f1\b0  []\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 incs\cf2  
+\f0\b =
+\f1\b0  []\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 reads\cf2  
+\f0\b =
+\f1\b0  [\cf4 pre_filtered\cf2 , \cf4 post_filtered\cf2 , \cf4 weights\cf2 ]\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 updates\cf2  
+\f0\b =
+\f1\b0  [\cf4 delta\cf2 ]\
+\
+    
+\f0\b def
+\f1\b0  
+\f0\b \cf8 _descstr
+\f1\b0 \cf2 (\cf9 self\cf2 ):\
+        
+\f0\b return
+\f1\b0  \cf7 'pre=%s, post=%s -> %s'\cf2  
+\f0\b %
+\f1\b0  (\
+            \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_filtered\cf2 , \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 post_filtered\cf2 , \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 delta\cf2 )\
+\
+    
+\f0\b def
+\f1\b0  
+\f0\b \cf8 make_step
+\f1\b0 \cf2 (\cf9 self\cf2 , \cf4 signals\cf2 , \cf4 dt\cf2 , \cf4 rng\cf2 ):\
+        \cf4 weights\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 weights\cf2 ]\
+        \cf4 pre_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_filtered\cf2 ]\
+        \cf4 post_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 post_filtered\cf2 ]\
+        \cf4 delta\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 delta\cf2 ]\
+        \cf4 alpha\cf2  
+\f0\b =
+\f1\b0  \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rate\cf2  
+\f0\b *
+\f1\b0  \cf4 dt\cf2 \
+        \cf4 beta\cf2  
+\f0\b =
+\f1\b0  \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 beta\cf2 \
+\
+        
+\f0\b def
+\f1\b0  
+\f0\b \cf8 step_simoja
+\f1\b0 \cf2 ():\
+            
+\f2\i \cf11 # perform forgetting
+\f1\i0 \cf2 \
+            \cf4 post_squared\cf2  
+\f0\b =
+\f1\b0  \cf4 alpha\cf2  
+\f0\b *
+\f1\b0  \cf4 post_filtered\cf2  
+\f0\b *
+\f1\b0  \cf4 post_filtered\cf2 \
+            \cf4 delta\cf2 [
+\f0\b ...
+\f1\b0 ] 
+\f0\b =
+\f1\b0  
+\f0\b -
+\f1\b0 \cf4 beta\cf2  
+\f0\b *
+\f1\b0  \cf4 weights\cf2  
+\f0\b *
+\f1\b0  \cf4 post_squared\cf2 [:, \cf9 None\cf2 ]\
+\
+            
+\f2\i \cf11 # perform update
+\f1\i0 \cf2 \
+            \cf4 delta\cf2 [
+\f0\b ...
+\f1\b0 ] 
+\f0\b +=
+\f1\b0  \cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 outer\cf2 (\cf4 alpha\cf2  
+\f0\b *
+\f1\b0  \cf4 post_filtered\cf2 , \cf4 pre_filtered\cf2 )\
+\
+        
+\f0\b return
+\f1\b0  \cf4 step_simoja\cf2 \
+\
+\
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://pythonhosted.org/nengo/backend_api.html#nengo.builder.learning_rules.SimVoja"}}{\fldrslt 
+\fs20 \cf5 [docs]}}
+\fs20 \cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs24 \cf2 class
+\f1\b0  
+\f0\b \cf6 SimVoja
+\f1\b0 \cf2 (\cf4 Operator\cf2 ):\
+    \cf7 """Simulates a simplified version of Oja's rule in the vector space.\cf2 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7     See :doc:`examples/learn_associations` for details.\cf2 \
+\
+\cf7     Parameters\cf2 \
+\cf7     ----------\cf2 \
+\cf7     pre_decoded : Signal\cf2 \
+\cf7         Decoded activity from presynaptic ensemble, :math:`a_i`.\cf2 \
+\cf7     post_filtered : Signal\cf2 \
+\cf7         Filtered postsynaptic activity signal.\cf2 \
+\cf7     scaled_encoders : Signal\cf2 \
+\cf7         2d array of encoders, multiplied by ``scale``.\cf2 \
+\cf7     delta : Signal\cf2 \
+\cf7         The synaptic weight change to be applied, :math:`\\Delta \\omega_\{ij\}`.\cf2 \
+\cf7     scale : ndarray\cf2 \
+\cf7         The length of each encoder.\cf2 \
+\cf7     learning_signal : Signal\cf2 \
+\cf7         Scalar signal to be multiplied by ``learning_rate``. Expected to be\cf2 \
+\cf7         either 0 or 1 to turn learning off or on, respectively.\cf2 \
+\cf7     learning_rate : float\cf2 \
+\cf7         The scalar learning rate.\cf2 \
+\cf7     tag : str, optional (Default: None)\cf2 \
+\cf7         A label associated with the operator, for debugging purposes.\cf2 \
+\
+\cf7     Attributes\cf2 \
+\cf7     ----------\cf2 \
+\cf7     delta : Signal\cf2 \
+\cf7         The synaptic weight change to be applied, :math:`\\Delta \\omega_\{ij\}`.\cf2 \
+\cf7     learning_rate : float\cf2 \
+\cf7         The scalar learning rate.\cf2 \
+\cf7     learning_signal : Signal\cf2 \
+\cf7         Scalar signal to be multiplied by ``learning_rate``. Expected to be\cf2 \
+\cf7         either 0 or 1 to turn learning off or on, respectively.\cf2 \
+\cf7     post_filtered : Signal\cf2 \
+\cf7         Filtered postsynaptic activity signal.\cf2 \
+\cf7     pre_decoded : Signal\cf2 \
+\cf7         Decoded activity from presynaptic ensemble, :math:`a_i`.\cf2 \
+\cf7     scale : ndarray\cf2 \
+\cf7         The length of each encoder.\cf2 \
+\cf7     scaled_encoders : Signal\cf2 \
+\cf7         2d array of encoders, multiplied by ``scale``.\cf2 \
+\cf7     tag : str or None\cf2 \
+\cf7         A label associated with the operator, for debugging purposes.\cf2 \
+\
+\cf7     Notes\cf2 \
+\cf7     -----\cf2 \
+\cf7     1. sets ``[]``\cf2 \
+\cf7     2. incs ``[]``\cf2 \
+\cf7     3. reads ``[pre_decoded, post_filtered, scaled_encoders, learning_signal]``\cf2 \
+\cf7     4. updates ``[delta]``\cf2 \
+\cf7     """\cf2 \
+\
+    
+\f0\b def
+\f1\b0  
+\f0\b \cf8 __init__
+\f1\b0 \cf2 (\cf9 self\cf2 , \cf4 pre_decoded\cf2 , \cf4 post_filtered\cf2 , \cf4 scaled_encoders\cf2 , \cf4 delta\cf2 ,\
+                 \cf4 scale\cf2 , \cf4 learning_signal\cf2 , \cf4 learning_rate\cf2 , \cf4 tag
+\f0\b \cf2 =
+\f1\b0 \cf9 None\cf2 ):\
+        \cf10 super\cf2 (\cf4 SimVoja\cf2 , \cf9 self\cf2 )
+\f0\b .
+\f1\b0 \cf4 __init__\cf2 (\cf4 tag
+\f0\b \cf2 =
+\f1\b0 \cf4 tag\cf2 )\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_decoded\cf2  
+\f0\b =
+\f1\b0  \cf4 pre_decoded\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 post_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 post_filtered\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 scaled_encoders\cf2  
+\f0\b =
+\f1\b0  \cf4 scaled_encoders\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 delta\cf2  
+\f0\b =
+\f1\b0  \cf4 delta\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 scale\cf2  
+\f0\b =
+\f1\b0  \cf4 scale\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_signal\cf2  
+\f0\b =
+\f1\b0  \cf4 learning_signal\cf2 \
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rate\cf2  
+\f0\b =
+\f1\b0  \cf4 learning_rate\cf2 \
+\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 sets\cf2  
+\f0\b =
+\f1\b0  []\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 incs\cf2  
+\f0\b =
+\f1\b0  []\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 reads\cf2  
+\f0\b =
+\f1\b0  [\
+            \cf4 pre_decoded\cf2 , \cf4 post_filtered\cf2 , \cf4 scaled_encoders\cf2 , \cf4 learning_signal\cf2 ]\
+        \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 updates\cf2  
+\f0\b =
+\f1\b0  [\cf4 delta\cf2 ]\
+\
+    
+\f0\b def
+\f1\b0  
+\f0\b \cf8 _descstr
+\f1\b0 \cf2 (\cf9 self\cf2 ):\
+        
+\f0\b return
+\f1\b0  \cf7 'pre=%s, post=%s -> %s'\cf2  
+\f0\b %
+\f1\b0  (\
+            \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_decoded\cf2 , \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 post_filtered\cf2 , \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 delta\cf2 )\
+\
+    
+\f0\b def
+\f1\b0  
+\f0\b \cf8 make_step
+\f1\b0 \cf2 (\cf9 self\cf2 , \cf4 signals\cf2 , \cf4 dt\cf2 , \cf4 rng\cf2 ):\
+        \cf4 pre_decoded\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_decoded\cf2 ]\
+        \cf4 post_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 post_filtered\cf2 ]\
+        \cf4 scaled_encoders\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 scaled_encoders\cf2 ]\
+        \cf4 delta\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 delta\cf2 ]\
+        \cf4 learning_signal\cf2  
+\f0\b =
+\f1\b0  \cf4 signals\cf2 [\cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_signal\cf2 ]\
+        \cf4 alpha\cf2  
+\f0\b =
+\f1\b0  \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rate\cf2  
+\f0\b *
+\f1\b0  \cf4 dt\cf2 \
+        \cf4 scale\cf2  
+\f0\b =
+\f1\b0  \cf9 self
+\f0\b \cf2 .
+\f1\b0 \cf4 scale\cf2 [:, \cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 newaxis\cf2 ]\
+\
+        
+\f0\b def
+\f1\b0  
+\f0\b \cf8 step_simvoja
+\f1\b0 \cf2 ():\
+            \cf4 delta\cf2 [
+\f0\b ...
+\f1\b0 ] 
+\f0\b =
+\f1\b0  \cf4 alpha\cf2  
+\f0\b *
+\f1\b0  \cf4 learning_signal\cf2  
+\f0\b *
+\f1\b0  (\
+                \cf4 scale\cf2  
+\f0\b *
+\f1\b0  \cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 outer\cf2 (\cf4 post_filtered\cf2 , \cf4 pre_decoded\cf2 ) 
+\f0\b -
+\f1\b0 \
+                \cf4 post_filtered\cf2 [:, \cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 newaxis\cf2 ] 
+\f0\b *
+\f1\b0  \cf4 scaled_encoders\cf2 )\
+        
+\f0\b return
+\f1\b0  \cf4 step_simvoja\cf2 \
+\
+\
+\pard\pardeftab720\partightenfactor0
+
+\f0\b \cf2 def
+\f1\b0  
+\f0\b \cf8 get_pre_ens
+\f1\b0 \cf2 (\cf4 conn\cf2 ):\
+    
+\f0\b return
+\f1\b0  (\cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_obj\cf2  
+\f0\b if
+\f1\b0  \cf10 isinstance\cf2 (\cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_obj\cf2 , \cf4 Ensemble\cf2 )\
+            
+\f0\b else
+\f1\b0  \cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_obj
+\f0\b \cf2 .
+\f1\b0 \cf4 ensemble\cf2 )\
+\
+\
+
+\f0\b def
+\f1\b0  
+\f0\b \cf8 get_post_ens
+\f1\b0 \cf2 (\cf4 conn\cf2 ):\
+    
+\f0\b return
+\f1\b0  (\cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 post_obj\cf2  
+\f0\b if
+\f1\b0  \cf10 isinstance\cf2 (\cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 post_obj\cf2 , (\cf4 Ensemble\cf2 , \cf4 Node\cf2 ))\
+            
+\f0\b else
+\f1\b0  \cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 post_obj
+\f0\b \cf2 .
+\f1\b0 \cf4 ensemble\cf2 )\
+\
+\
+@Builder.register(\cf4 LearningRule\cf2 )\
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://pythonhosted.org/nengo/backend_api.html#nengo.builder.learning_rules.build_learning_rule"}}{\fldrslt 
+\fs20 \cf5 [docs]}}
+\fs20 \cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs24 \cf2 def
+\f1\b0  
+\f0\b \cf8 build_learning_rule
+\f1\b0 \cf2 (\cf4 model\cf2 , \cf4 rule\cf2 ):\
+    \cf7 """Builds a `.LearningRule` object into a model.\cf2 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7     A brief summary of what happens in the learning rule build process,\cf2 \
+\cf7     in order:\cf2 \
+\
+\cf7     1. Create a delta signal for the weight change.\cf2 \
+\cf7     2. Add an operator to increment the weights by delta.\cf2 \
+\cf7     3. Call build function for the learning rule type.\cf2 \
+\
+\cf7     The learning rule system is designed to work with multiple learning rules\cf2 \
+\cf7     on the same connection. If only one learning rule was to be applied to the\cf2 \
+\cf7     connection, then we could directly modify the weights, rather than\cf2 \
+\cf7     calculating the delta here and applying it in `.build_connection`.\cf2 \
+\cf7     However, with multiple learning rules, we must isolate each delta signal\cf2 \
+\cf7     in case calculating the delta depends on the weights themselves,\cf2 \
+\cf7     making the calculation depend on the order of the learning rule\cf2 \
+\cf7     evaluations.\cf2 \
+\
+\cf7     Parameters\cf2 \
+\cf7     ----------\cf2 \
+\cf7     model : Model\cf2 \
+\cf7         The model to build into.\cf2 \
+\cf7     rule : LearningRule\cf2 \
+\cf7         The learning rule to build.\cf2 \
+\
+\cf7     Notes\cf2 \
+\cf7     -----\cf2 \
+\cf7     Sets ``model.params[rule]`` to ``None``.\cf2 \
+\cf7     """\cf2 \
+\
+    \cf4 conn\cf2  
+\f0\b =
+\f1\b0  \cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 connection\cf2 \
+\
+    
+\f2\i \cf11 # --- Set up delta signal
+\f1\i0 \cf2 \
+    
+\f0\b if
+\f1\b0  \cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 modifies\cf2  
+\f0\b ==
+\f1\b0  \cf7 'encoders'\cf2 :\
+        
+\f0\b if
+\f1\b0  
+\f0\b not
+\f1\b0  \cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 is_decoded\cf2 :\
+            
+\f0\b \cf8 ValueError
+\f1\b0 \cf2 (\cf7 "The connection must be decoded in order to use "\cf2 \
+                       \cf7 "encoder learning."\cf2 )\
+        \cf4 post\cf2  
+\f0\b =
+\f1\b0  \cf4 get_post_ens\cf2 (\cf4 conn\cf2 )\
+        \cf4 target\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 post\cf2 ][\cf7 'encoders'\cf2 ]\
+        \cf4 tag\cf2  
+\f0\b =
+\f1\b0  \cf7 "encoders += delta"\cf2 \
+        \cf4 delta\cf2  
+\f0\b =
+\f1\b0  \cf4 Signal\cf2 (\
+            \cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 zeros\cf2 ((\cf4 post
+\f0\b \cf2 .
+\f1\b0 \cf4 n_neurons\cf2 , \cf4 post
+\f0\b \cf2 .
+\f1\b0 \cf4 dimensions\cf2 )), \cf4 name
+\f0\b \cf2 =
+\f1\b0 \cf7 'Delta'\cf2 )\
+    
+\f0\b elif
+\f1\b0  \cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 modifies\cf2  
+\f0\b in
+\f1\b0  (\cf7 'decoders'\cf2 , \cf7 'weights'\cf2 ):\
+        \cf4 pre\cf2  
+\f0\b =
+\f1\b0  \cf4 get_pre_ens\cf2 (\cf4 conn\cf2 )\
+        \cf4 target\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 conn\cf2 ][\cf7 'weights'\cf2 ]\
+        \cf4 tag\cf2  
+\f0\b =
+\f1\b0  \cf7 "weights += delta"\cf2 \
+        
+\f0\b if
+\f1\b0  
+\f0\b not
+\f1\b0  \cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 is_decoded\cf2 :\
+            \cf4 post\cf2  
+\f0\b =
+\f1\b0  \cf4 get_post_ens\cf2 (\cf4 conn\cf2 )\
+            \cf4 delta\cf2  
+\f0\b =
+\f1\b0  \cf4 Signal\cf2 (\
+                \cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 zeros\cf2 ((\cf4 post
+\f0\b \cf2 .
+\f1\b0 \cf4 n_neurons\cf2 , \cf4 pre
+\f0\b \cf2 .
+\f1\b0 \cf4 n_neurons\cf2 )), \cf4 name
+\f0\b \cf2 =
+\f1\b0 \cf7 'Delta'\cf2 )\
+        
+\f0\b else
+\f1\b0 :\
+            \cf4 delta\cf2  
+\f0\b =
+\f1\b0  \cf4 Signal\cf2 (\
+                \cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 zeros\cf2 ((\cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 size_in\cf2 , \cf4 pre
+\f0\b \cf2 .
+\f1\b0 \cf4 n_neurons\cf2 )), \cf4 name
+\f0\b \cf2 =
+\f1\b0 \cf7 'Delta'\cf2 )\
+    
+\f0\b else
+\f1\b0 :\
+        
+\f0\b raise
+\f1\b0  \cf4 BuildError\cf2 (\cf7 "Unknown target %r"\cf2  
+\f0\b %
+\f1\b0  \cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 modifies\cf2 )\
+\
+    
+\f0\b assert
+\f1\b0  \cf4 delta
+\f0\b \cf2 .
+\f1\b0 \cf4 shape\cf2  
+\f0\b ==
+\f1\b0  \cf4 target
+\f0\b \cf2 .
+\f1\b0 \cf4 shape\cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\
+        \cf4 ElementwiseInc\cf2 (\cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf7 'common'\cf2 ][\cf12 1\cf2 ], \cf4 delta\cf2 , \cf4 target\cf2 , \cf4 tag
+\f0\b \cf2 =
+\f1\b0 \cf4 tag\cf2 ))\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'delta'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 delta\cf2 \
+\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 params\cf2 [\cf4 rule\cf2 ] 
+\f0\b =
+\f1\b0  \cf9 None\cf2   
+\f2\i \cf11 # by default, no build-time info to return
+\f1\i0 \cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 build\cf2 (\cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rule_type\cf2 , \cf4 rule\cf2 )  
+\f2\i \cf11 # updates delta
+\f1\i0 \cf2 \
+\
+\
+@Builder.register(\cf4 BCM\cf2 )\
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://pythonhosted.org/nengo/backend_api.html#nengo.builder.learning_rules.build_bcm"}}{\fldrslt 
+\fs20 \cf5 [docs]}}
+\fs20 \cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs24 \cf2 def
+\f1\b0  
+\f0\b \cf8 build_bcm
+\f1\b0 \cf2 (\cf4 model\cf2 , \cf4 bcm\cf2 , \cf4 rule\cf2 ):\
+    \cf7 """Builds a `.BCM` object into a model.\cf2 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7     Calls synapse build functions to filter the pre and post activities,\cf2 \
+\cf7     and adds a `.SimBCM` operator to the model to calculate the delta.\cf2 \
+\
+\cf7     Parameters\cf2 \
+\cf7     ----------\cf2 \
+\cf7     model : Model\cf2 \
+\cf7         The model to build into.\cf2 \
+\cf7     bcm : BCM\cf2 \
+\cf7         Learning rule type to build.\cf2 \
+\cf7     rule : LearningRule\cf2 \
+\cf7         The learning rule object corresponding to the neuron type.\cf2 \
+\
+\cf7     Notes\cf2 \
+\cf7     -----\cf2 \
+\cf7     Does not modify ``model.params[]`` and can therefore be called\cf2 \
+\cf7     more than once with the same `.BCM` instance.\cf2 \
+\cf7     """\cf2 \
+\
+    \cf4 conn\cf2  
+\f0\b =
+\f1\b0  \cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 connection\cf2 \
+    \cf4 pre_activities\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 get_pre_ens\cf2 (\cf4 conn\cf2 )
+\f0\b .
+\f1\b0 \cf4 neurons\cf2 ][\cf7 'out'\cf2 ]\
+    \cf4 pre_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 build\cf2 (\cf4 Lowpass\cf2 (\cf4 bcm
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_tau\cf2 ), \cf4 pre_activities\cf2 )\
+    \cf4 post_activities\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 get_post_ens\cf2 (\cf4 conn\cf2 )
+\f0\b .
+\f1\b0 \cf4 neurons\cf2 ][\cf7 'out'\cf2 ]\
+    \cf4 post_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 build\cf2 (\cf4 Lowpass\cf2 (\cf4 bcm
+\f0\b \cf2 .
+\f1\b0 \cf4 post_tau\cf2 ), \cf4 post_activities\cf2 )\
+    \cf4 theta\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 build\cf2 (\cf4 Lowpass\cf2 (\cf4 bcm
+\f0\b \cf2 .
+\f1\b0 \cf4 theta_tau\cf2 ), \cf4 post_filtered\cf2 )\
+\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\cf4 SimBCM\cf2 (\cf4 pre_filtered\cf2 ,\
+                        \cf4 post_filtered\cf2 ,\
+                        \cf4 theta\cf2 ,\
+                        \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'delta'\cf2 ],\
+                        \cf4 learning_rate
+\f0\b \cf2 =
+\f1\b0 \cf4 bcm
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rate\cf2 ))\
+\
+    
+\f2\i \cf11 # expose these for probes
+\f1\i0 \cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'theta'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 theta\cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'pre_filtered'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 pre_filtered\cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'post_filtered'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 post_filtered\cf2 \
+\
+\
+@Builder.register(\cf4 Oja\cf2 )\
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://pythonhosted.org/nengo/backend_api.html#nengo.builder.learning_rules.build_oja"}}{\fldrslt 
+\fs20 \cf5 [docs]}}
+\fs20 \cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs24 \cf2 def
+\f1\b0  
+\f0\b \cf8 build_oja
+\f1\b0 \cf2 (\cf4 model\cf2 , \cf4 oja\cf2 , \cf4 rule\cf2 ):\
+    \cf7 """Builds a `.BCM` object into a model.\cf2 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7     Calls synapse build functions to filter the pre and post activities,\cf2 \
+\cf7     and adds a `.SimOja` operator to the model to calculate the delta.\cf2 \
+\
+\cf7     Parameters\cf2 \
+\cf7     ----------\cf2 \
+\cf7     model : Model\cf2 \
+\cf7         The model to build into.\cf2 \
+\cf7     oja : Oja\cf2 \
+\cf7         Learning rule type to build.\cf2 \
+\cf7     rule : LearningRule\cf2 \
+\cf7         The learning rule object corresponding to the neuron type.\cf2 \
+\
+\cf7     Notes\cf2 \
+\cf7     -----\cf2 \
+\cf7     Does not modify ``model.params[]`` and can therefore be called\cf2 \
+\cf7     more than once with the same `.Oja` instance.\cf2 \
+\cf7     """\cf2 \
+\
+    \cf4 conn\cf2  
+\f0\b =
+\f1\b0  \cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 connection\cf2 \
+    \cf4 pre_activities\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 get_pre_ens\cf2 (\cf4 conn\cf2 )
+\f0\b .
+\f1\b0 \cf4 neurons\cf2 ][\cf7 'out'\cf2 ]\
+    \cf4 post_activities\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 get_post_ens\cf2 (\cf4 conn\cf2 )
+\f0\b .
+\f1\b0 \cf4 neurons\cf2 ][\cf7 'out'\cf2 ]\
+    \cf4 pre_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 build\cf2 (\cf4 Lowpass\cf2 (\cf4 oja
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_tau\cf2 ), \cf4 pre_activities\cf2 )\
+    \cf4 post_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 build\cf2 (\cf4 Lowpass\cf2 (\cf4 oja
+\f0\b \cf2 .
+\f1\b0 \cf4 post_tau\cf2 ), \cf4 post_activities\cf2 )\
+\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\cf4 SimOja\cf2 (\cf4 pre_filtered\cf2 ,\
+                        \cf4 post_filtered\cf2 ,\
+                        \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 conn\cf2 ][\cf7 'weights'\cf2 ],\
+                        \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'delta'\cf2 ],\
+                        \cf4 learning_rate
+\f0\b \cf2 =
+\f1\b0 \cf4 oja
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rate\cf2 ,\
+                        \cf4 beta
+\f0\b \cf2 =
+\f1\b0 \cf4 oja
+\f0\b \cf2 .
+\f1\b0 \cf4 beta\cf2 ))\
+\
+    
+\f2\i \cf11 # expose these for probes
+\f1\i0 \cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'pre_filtered'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 pre_filtered\cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'post_filtered'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 post_filtered\cf2 \
+\
+\
+@Builder.register(\cf4 Voja\cf2 )\
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://pythonhosted.org/nengo/backend_api.html#nengo.builder.learning_rules.build_voja"}}{\fldrslt 
+\fs20 \cf5 [docs]}}
+\fs20 \cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs24 \cf2 def
+\f1\b0  
+\f0\b \cf8 build_voja
+\f1\b0 \cf2 (\cf4 model\cf2 , \cf4 voja\cf2 , \cf4 rule\cf2 ):\
+    \cf7 """Builds a `.Voja` object into a model.\cf2 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7     Calls synapse build functions to filter the post activities,\cf2 \
+\cf7     and adds a `.SimVoja` operator to the model to calculate the delta.\cf2 \
+\
+\cf7     Parameters\cf2 \
+\cf7     ----------\cf2 \
+\cf7     model : Model\cf2 \
+\cf7         The model to build into.\cf2 \
+\cf7     voja : Voja\cf2 \
+\cf7         Learning rule type to build.\cf2 \
+\cf7     rule : LearningRule\cf2 \
+\cf7         The learning rule object corresponding to the neuron type.\cf2 \
+\
+\cf7     Notes\cf2 \
+\cf7     -----\cf2 \
+\cf7     Does not modify ``model.params[]`` and can therefore be called\cf2 \
+\cf7     more than once with the same `.Voja` instance.\cf2 \
+\cf7     """\cf2 \
+\
+    \cf4 conn\cf2  
+\f0\b =
+\f1\b0  \cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 connection\cf2 \
+\
+    
+\f2\i \cf11 # Filtered post activity
+\f1\i0 \cf2 \
+    \cf4 post\cf2  
+\f0\b =
+\f1\b0  \cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 post_obj\cf2 \
+    
+\f0\b if
+\f1\b0  \cf4 voja
+\f0\b \cf2 .
+\f1\b0 \cf4 post_tau\cf2  
+\f0\b is
+\f1\b0  
+\f0\b not
+\f1\b0  \cf9 None\cf2 :\
+        \cf4 post_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 build\cf2 (\
+            \cf4 Lowpass\cf2 (\cf4 voja
+\f0\b \cf2 .
+\f1\b0 \cf4 post_tau\cf2 ), \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 post\cf2 ][\cf7 'out'\cf2 ])\
+    
+\f0\b else
+\f1\b0 :\
+        \cf4 post_filtered\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 post\cf2 ][\cf7 'out'\cf2 ]\
+\
+    
+\f2\i \cf11 # Learning signal, defaults to 1 in case no connection is made
+\f1\i0 \cf2 \
+    
+\f2\i \cf11 # and multiplied by the learning_rate * dt
+\f1\i0 \cf2 \
+    \cf4 learning\cf2  
+\f0\b =
+\f1\b0  \cf4 Signal\cf2 (\cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 zeros\cf2 (\cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 size_in\cf2 ), \cf4 name
+\f0\b \cf2 =
+\f1\b0 \cf7 "Voja:learning"\cf2 )\
+    
+\f0\b assert
+\f1\b0  \cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 size_in\cf2  
+\f0\b ==
+\f1\b0  \cf12 1\cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\cf4 Reset\cf2 (\cf4 learning\cf2 , \cf4 value
+\f0\b \cf2 =
+\f1\b0 \cf12 1.0\cf2 ))\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'in'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 learning\cf2   
+\f2\i \cf11 # optional connection will attach here
+\f1\i0 \cf2 \
+\
+    \cf4 scaled_encoders\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 post\cf2 ][\cf7 'encoders'\cf2 ]\
+    
+\f2\i \cf11 # The gain and radius are folded into the encoders during the ensemble
+\f1\i0 \cf2 \
+    
+\f2\i \cf11 # build process, so we need to make sure that the deltas are proportional
+\f1\i0 \cf2 \
+    
+\f2\i \cf11 # to this scaling factor
+\f1\i0 \cf2 \
+    \cf4 encoder_scale\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 params\cf2 [\cf4 post\cf2 ]
+\f0\b .
+\f1\b0 \cf4 gain\cf2  
+\f0\b /
+\f1\b0  \cf4 post
+\f0\b \cf2 .
+\f1\b0 \cf4 radius\cf2 \
+    
+\f0\b assert
+\f1\b0  \cf4 post_filtered
+\f0\b \cf2 .
+\f1\b0 \cf4 shape\cf2  
+\f0\b ==
+\f1\b0  \cf4 encoder_scale
+\f0\b \cf2 .
+\f1\b0 \cf4 shape\cf2 \
+\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\
+        \cf4 SimVoja\cf2 (\cf4 pre_decoded
+\f0\b \cf2 =
+\f1\b0 \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 conn\cf2 ][\cf7 'out'\cf2 ],\
+                \cf4 post_filtered
+\f0\b \cf2 =
+\f1\b0 \cf4 post_filtered\cf2 ,\
+                \cf4 scaled_encoders
+\f0\b \cf2 =
+\f1\b0 \cf4 scaled_encoders\cf2 ,\
+                \cf4 delta
+\f0\b \cf2 =
+\f1\b0 \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'delta'\cf2 ],\
+                \cf4 scale
+\f0\b \cf2 =
+\f1\b0 \cf4 encoder_scale\cf2 ,\
+                \cf4 learning_signal
+\f0\b \cf2 =
+\f1\b0 \cf4 learning\cf2 ,\
+                \cf4 learning_rate
+\f0\b \cf2 =
+\f1\b0 \cf4 voja
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rate\cf2 ))\
+\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'scaled_encoders'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 scaled_encoders\cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'post_filtered'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 post_filtered\cf2 \
+\
+\
+@Builder.register(\cf4 PES\cf2 )\
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://pythonhosted.org/nengo/backend_api.html#nengo.builder.learning_rules.build_pes"}}{\fldrslt 
+\fs20 \cf5 [docs]}}
+\fs20 \cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs24 \cf2 def
+\f1\b0  
+\f0\b \cf8 build_pes
+\f1\b0 \cf2 (\cf4 model\cf2 , \cf4 pes\cf2 , \cf4 rule\cf2 ):\
+    \cf7 """Builds a `.PES` object into a model.\cf2 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7     Calls synapse build functions to filter the pre activities,\cf2 \
+\cf7     and adds several operators to implement the PES learning rule.\cf2 \
+\cf7     Unlike other learning rules, there is no corresponding `.Operator`\cf2 \
+\cf7     subclass for the PES rule. Instead, the rule is implemented with\cf2 \
+\cf7     generic operators like `.ElementwiseInc` and `.DotInc`.\cf2 \
+\cf7     Generic operators are used because they are more likely to be\cf2 \
+\cf7     implemented on other backends like Nengo OCL.\cf2 \
+\
+\cf7     Parameters\cf2 \
+\cf7     ----------\cf2 \
+\cf7     model : Model\cf2 \
+\cf7         The model to build into.\cf2 \
+\cf7     pes : PES\cf2 \
+\cf7         Learning rule type to build.\cf2 \
+\cf7     rule : LearningRule\cf2 \
+\cf7         The learning rule object corresponding to the neuron type.\cf2 \
+\
+\cf7     Notes\cf2 \
+\cf7     -----\cf2 \
+\cf7     Does not modify ``model.params[]`` and can therefore be called\cf2 \
+\cf7     more than once with the same `.PES` instance.\cf2 \
+\cf7     """\cf2 \
+\
+    \cf4 conn\cf2  
+\f0\b =
+\f1\b0  \cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 connection\cf2 \
+\
+    
+\f2\i \cf11 # Create input error signal
+\f1\i0 \cf2 \
+    \cf4 error\cf2  
+\f0\b =
+\f1\b0  \cf4 Signal\cf2 (\cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 zeros\cf2 (\cf4 rule
+\f0\b \cf2 .
+\f1\b0 \cf4 size_in\cf2 ), \cf4 name
+\f0\b \cf2 =
+\f1\b0 \cf7 "PES:error"\cf2 )\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\cf4 Reset\cf2 (\cf4 error\cf2 ))\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'in'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 error\cf2   
+\f2\i \cf11 # error connection will attach here
+\f1\i0 \cf2 \
+\
+    \cf4 acts\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 build\cf2 (\cf4 Lowpass\cf2 (\cf4 pes
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_tau\cf2 ), \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_obj\cf2 ][\cf7 'out'\cf2 ])\
+\
+    
+\f2\i \cf11 # Compute the correction, i.e. the scaled negative error
+\f1\i0 \cf2 \
+    \cf4 correction\cf2  
+\f0\b =
+\f1\b0  \cf4 Signal\cf2 (\cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 zeros\cf2 (\cf4 error
+\f0\b \cf2 .
+\f1\b0 \cf4 shape\cf2 ), \cf4 name
+\f0\b \cf2 =
+\f1\b0 \cf7 "PES:correction"\cf2 )\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\cf4 Reset\cf2 (\cf4 correction\cf2 ))\
+\
+    
+\f2\i \cf11 # correction = -learning_rate * (dt / n_neurons) * error
+\f1\i0 \cf2 \
+    \cf4 n_neurons\cf2  
+\f0\b =
+\f1\b0  (\cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_obj
+\f0\b \cf2 .
+\f1\b0 \cf4 n_neurons\cf2  
+\f0\b if
+\f1\b0  \cf10 isinstance\cf2 (\cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_obj\cf2 , \cf4 Ensemble\cf2 )\
+                 
+\f0\b else
+\f1\b0  \cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_obj
+\f0\b \cf2 .
+\f1\b0 \cf4 size_in\cf2 )\
+    \cf4 lr_sig\cf2  
+\f0\b =
+\f1\b0  \cf4 Signal\cf2 (
+\f0\b -
+\f1\b0 \cf4 pes
+\f0\b \cf2 .
+\f1\b0 \cf4 learning_rate\cf2  
+\f0\b *
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 dt\cf2  
+\f0\b /
+\f1\b0  \cf4 n_neurons\cf2 ,\
+                    \cf4 name
+\f0\b \cf2 =
+\f1\b0 \cf7 "PES:learning_rate"\cf2 )\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\cf4 DotInc\cf2 (\cf4 lr_sig\cf2 , \cf4 error\cf2 , \cf4 correction\cf2 , \cf4 tag
+\f0\b \cf2 =
+\f1\b0 \cf7 "PES:correct"\cf2 ))\
+\
+    
+\f0\b if
+\f1\b0  
+\f0\b not
+\f1\b0  \cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 is_decoded\cf2 :\
+        \cf4 post\cf2  
+\f0\b =
+\f1\b0  \cf4 get_post_ens\cf2 (\cf4 conn\cf2 )\
+        \cf4 weights\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 conn\cf2 ][\cf7 'weights'\cf2 ]\
+        \cf4 encoders\cf2  
+\f0\b =
+\f1\b0  \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 post\cf2 ][\cf7 'encoders'\cf2 ]\
+\
+        
+\f2\i \cf11 # encoded = dot(encoders, correction)
+\f1\i0 \cf2 \
+        \cf4 encoded\cf2  
+\f0\b =
+\f1\b0  \cf4 Signal\cf2 (\cf4 np
+\f0\b \cf2 .
+\f1\b0 \cf4 zeros\cf2 (\cf4 weights
+\f0\b \cf2 .
+\f1\b0 \cf4 shape\cf2 [\cf12 0\cf2 ]), \cf4 name
+\f0\b \cf2 =
+\f1\b0 \cf7 "PES:encoded"\cf2 )\
+        \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\cf4 Reset\cf2 (\cf4 encoded\cf2 ))\
+        \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\cf4 DotInc\cf2 (\cf4 encoders\cf2 , \cf4 correction\cf2 , \cf4 encoded\cf2 , \cf4 tag
+\f0\b \cf2 =
+\f1\b0 \cf7 "PES:encode"\cf2 ))\
+        \cf4 local_error\cf2  
+\f0\b =
+\f1\b0  \cf4 encoded\cf2 \
+    
+\f0\b elif
+\f1\b0  \cf10 isinstance\cf2 (\cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_obj\cf2 , (\cf4 Ensemble\cf2 , \cf4 Neurons\cf2 )):\
+        \cf4 local_error\cf2  
+\f0\b =
+\f1\b0  \cf4 correction\cf2 \
+    
+\f0\b else
+\f1\b0 :\
+        
+\f0\b raise
+\f1\b0  \cf4 BuildError\cf2 (\cf7 "'pre' object '%s' not suitable for PES learning"\cf2 \
+                         
+\f0\b %
+\f1\b0  (\cf4 conn
+\f0\b \cf2 .
+\f1\b0 \cf4 pre_obj\cf2 ))\
+\
+    
+\f2\i \cf11 # delta = local_error * activities
+\f1\i0 \cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\cf4 Reset\cf2 (\cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'delta'\cf2 ]))\
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 add_op\cf2 (\cf4 ElementwiseInc\cf2 (\
+        \cf4 local_error
+\f0\b \cf2 .
+\f1\b0 \cf4 column\cf2 (), \cf4 acts
+\f0\b \cf2 .
+\f1\b0 \cf4 row\cf2 (), \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'delta'\cf2 ],\
+        \cf4 tag
+\f0\b \cf2 =
+\f1\b0 \cf7 "PES:Inc Delta"\cf2 ))\
+\
+    
+\f2\i \cf11 # expose these for probes
+\f1\i0 \cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'error'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 error\cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'correction'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 correction\cf2 \
+    \cf4 model
+\f0\b \cf2 .
+\f1\b0 \cf4 sig\cf2 [\cf4 rule\cf2 ][\cf7 'activities'\cf2 ] 
+\f0\b =
+\f1\b0  \cf4 acts\cf2 \
+}
