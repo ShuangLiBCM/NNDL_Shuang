@@ -1,10 +1,17 @@
+# Load data and prepare the data for BCM training
+# Implemented Iris data and laplace data
+
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from time import time
 import seaborn as sns
 import pandas as pd
+from scipy import stats
 
+# Import Iris data from sklean
+# This data sets consists of 3 different types of irises’ (Setosa, Versicolour, and Virginica) petal and sepal length, stored in a 150x4 numpy.ndarray
+# http://scikit-learn.org/stable/auto_examples/datasets/plot_iris_dataset.html
 def load_Iris(whiten = True):
 	
 	df = pd.read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data', header=None)
@@ -16,6 +23,7 @@ def load_Iris(whiten = True):
 	# Remove the mean
 	s_rt = s_rt - s_rt.mean(axis = 0)
 
+	# Perform zca whitenning
 	if whiten:
 		ZCAMatrix = zca_whitening_matrix(s_rt.T)
 		s_rt_wt = np.dot(s_rt,ZCAMatrix)
@@ -37,9 +45,12 @@ def load_Iris(whiten = True):
 
 	return s_rt_wt
 
-def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = False, whiten = True):
-		# Sample from the above distribution
-	s = np.random.laplace(loc,scale,[sample_size,dimension])  # 5000*2, 0 mean, unit variance
+
+# Generate laplace distributed data
+
+def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = False, whiten = True, rotation = False):
+	# Sample from the laplace distribution
+	s = np.random.laplace(loc,scale,[sample_size,dimension])  
 
 	# make data skewed with a half-squaring
 	if skew:
@@ -47,11 +58,11 @@ def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = Fal
 
 	# Conduct rotation and mixture
 	# Generate rotation matrix
-	#if rotation
-	#	theta = np.pi/4      # 45 degree rotation
-	#A = np.array(((mt.cos(theta),-mt.sin(theta)),(mt.sin(theta),mt.cos(theta))))
-
-	A = np.random.randn(dimension,dimension)
+	if rotation:
+		theta = np.pi/4      # 45 degree rotation
+		A = np.array(((np.cos(theta),- np.sin(theta)),(np.sin(theta), np.cos(theta))))
+	else: 
+		A = np.random.randn(dimension,dimension)
 	#A = np.dot(A, A.T)
 
 	s_rt = np.dot(s,A)
