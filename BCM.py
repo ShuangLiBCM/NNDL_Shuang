@@ -9,7 +9,7 @@ import seaborn as sns
 # Update weight per sample
 # Enable 'QBCM' and 'kurtosis' objective function
 # Hasn't applied batch learning
-
+# Enable decat time constant
 class bcm:
     """BCM learning
     Parameter:
@@ -24,6 +24,7 @@ class bcm:
     shuffle: Boolean, whether shuffle whole datasize for each epoch
     nonlinear: String, type of activation function, can be choosen from 'Relu', 'Sigmoid' amd None
     obj_type: type of local learning rule, can be choosen from 'QBCM' and 'kurtosis'
+    decay: float, decay time constant, 0.0 means no decay
 
     Attributes:
     w_: array input dimension * num of output neurons
@@ -32,7 +33,7 @@ class bcm:
     obj: list, trakcing the trajectory of values of certain objective function, list length is number of weight updats, and each list contains array with 1 * num of output neurons
 
     """
-    def __init__(self, eta = 0.1, n_epoch=10, ny=1, batch=1, tau=100.0, thres=0, p = 2,random_state = None, shuffle = True, nonlinear = None, obj_type = 'QBCM'):
+    def __init__(self, eta = 0.1, n_epoch=10, ny=1, batch=1, tau=100.0, thres=0, p = 2,random_state = None, shuffle = True, nonlinear = None, obj_type = 'QBCM',decay = 0.0):
         self.eta = eta
         self.n_epoch = n_epoch
         self.ny = ny
@@ -44,6 +45,7 @@ class bcm:
         self.nonlinear = nonlinear
         self.obj_type = obj_type
         self.y_thres = []      # Storaged y for studying effect of threshold
+        self.decay = decay
 
         if random_state:
             np.random.seed(random_state)
@@ -70,15 +72,15 @@ class bcm:
                     y[j] = self._activation(np.dot(xi,self.w_[:,j]),nonlinear = self.nonlinear)
                     if self.obj_type == 'QBCM':
                         if self.nonlinear == 'Sigmoid':
-                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ self.eta * xi[:,None] * dsigmoid(y[j]) * y[j] * (y[j] - threshold[j])
+                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ self.eta * xi[:,None] * dsigmoid(y[j]) * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
                         else:
-                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ self.eta * xi[:,None] * y[j] * (y[j] - threshold[j])
+                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ self.eta * xi[:,None] * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
                     elif self.obj_type == 'kurtosis':
                         if self.nonlinear == 'Sigmoid':
-                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ 4 * self.eta * xi[:,None]* dsigmoid(y[j]) * y[j] * (y[j] ** 2 - threshold[j])
+                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ 4 * self.eta * xi[:,None]* dsigmoid(y[j]) * y[j] * (y[j] ** 2 - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
                             self.w_[:,j] = self.w_[:,j]/np.sqrt(np.sum((self.w_[:,j])**2))               # L2 norm of kurtosis learnin rule
                         else:
-                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ 4 * self.eta * xi[:,None]* y[j]*(y[j]**2 - threshold[j])
+                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ 4 * self.eta * xi[:,None]* y[j]*(y[j]**2 - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
                             self.w_[:,j] = self.w_[:,j]/np.sqrt(np.sum((self.w_[:,j])**2))     # L2 norm of kurtosis learnin rule
                     threshold[j] = self._ema(x = threshold[j],y = y[j],power = self.p)       
                     bcm_obj[j] = obj(X,w = self.w_[:,j],obj_type = self.obj_type,nonlinear = self.nonlinear)
@@ -162,9 +164,9 @@ def zca_whitening_matrix(X):
 
 
 # Plot trained BCM output, threshold, weights and objective function
-def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 10, ny = 2,tau = 200, thres = 0, p = 2,random_state = None, shuffle = True, nonlinear = 'Relu', obj_type = 'QBCM'):
+def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, thres = 0, p = 2,random_state = None, shuffle = True, nonlinear = 'Relu', obj_type = 'QBCM',decay = 0.0):
     # Initialize a BCM class onject
-    BCM_data = bcm(eta = eta,n_epoch = n_epoch,batch = batch,ny = ny,tau = tau, thres = thres, p = p,random_state=random_state , shuffle = shuffle, nonlinear = nonlinear, obj_type = obj_type)
+    BCM_data = bcm(eta = eta,n_epoch = n_epoch,batch = batch,ny = ny,tau = tau, thres = thres, p = p,random_state=random_state , shuffle = shuffle, nonlinear = nonlinear, obj_type = obj_type, decay = decay)
 
     # Track traning time
     t0 = time()
@@ -246,6 +248,7 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para):
     eta = para[3]
     tau = para[4]
     batch = para[5]
+    decay = para[6]
     # Plot a gallery of images
     n_row = len(obj_choice)
     n_col = len(nonlinear_choice)
@@ -268,7 +271,7 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para):
             obj_type = obj_choice[i]
 
             # Traing with BCM local learning rule
-            BCM_data = bcm(eta = eta,n_epoch = n_epoch,batch = batch,ny = ny,tau = tau, thres = 0, p = p,random_state = None, shuffle = True, nonlinear = nonlinear, obj_type = obj_type)
+            BCM_data = bcm(eta = eta,n_epoch = n_epoch,batch = batch,ny = ny,tau = tau, thres = 0, p = p,random_state = None, shuffle = True, nonlinear = nonlinear, obj_type = obj_type,decay = decay)
             BCM_data.fit(s_rt_wt)
             BCM_data_w = np.vstack(BCM_data.w_track)
             

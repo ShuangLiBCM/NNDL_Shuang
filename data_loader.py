@@ -53,6 +53,8 @@ def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = Fal
 	s = np.random.laplace(loc,scale,[sample_size,dimension])  
 
 	# make data skewed with a half-squaring
+
+	# make data skewed with a half-squaring
 	if skew:
 	    s[:,1] = stats.skewnorm.rvs(14., size=len(s))
 
