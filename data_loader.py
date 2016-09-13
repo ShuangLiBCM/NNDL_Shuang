@@ -51,45 +51,64 @@ def load_Iris(whiten = True):
 def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = False, whiten = True, rotation = False):
 	# Sample from the laplace distribution
 	s = np.random.laplace(loc,scale,[sample_size,dimension])  
-
+	w = np.eye(2)
 	# make data skewed with a half-squaring
 
 	# make data skewed with a half-squaring
+
 	if skew:
 	    s[:,1] = stats.skewnorm.rvs(14., size=len(s))
+	    title_ori = 'Skewed original distribution'
+	else:
+		title_ori = 'Original distribution'
 
+	# plot original distribution
+
+	df = pd.DataFrame({'x':s[:,0],'y':s[:,1]})
+	g = sns.jointplot(x="x", y="y", data=df)
+	g.plot_joint(plt.scatter, c="gray", s=10, linewidth=.1, marker=".")
+	# sns.plt.title(title_ori)
+	g.ax_joint.collections[0].set_alpha(0)
+	g.set_axis_labels("Dimension 1", "Dimension 2")
 	# Conduct rotation and mixture
 	# Generate rotation matrix
 	if rotation:
 		theta = np.pi/4      # 45 degree rotation
 		A = np.array(((np.cos(theta),- np.sin(theta)),(np.sin(theta), np.cos(theta))))
+		title_trans = 'Rotated distribution'
 	else: 
 		A = np.random.randn(dimension,dimension)
+		title_trans = 'Affine tranformed distribution'
 	#A = np.dot(A, A.T)
 
 	s_rt = np.dot(s,A)
+	w_rt = np.dot(w,A)
+
+	# plot mixed distribution
+	df = pd.DataFrame({'x':s_rt[:,0],'y':s_rt[:,1]})
+	# sns.plt.title(title_trans)
+	g = sns.jointplot(x="x", y="y", data=df)
+	g.plot_joint(plt.scatter, c="gray", s=10, linewidth=.1, marker=".")
+	g.ax_joint.collections[0].set_alpha(0)
+	g.set_axis_labels("Dimension 1", "Dimension 2")
+
 
 	if whiten:
 		ZCAMatrix = zca_whitening_matrix(s_rt.T)
 		s_rt_wt = np.dot(s_rt,ZCAMatrix)
+		w_rt_wt = np.dot(w_rt,ZCAMatrix)
+		# plot mixed distribution
+		df = pd.DataFrame({'x':s_rt[:,0],'y':s_rt_wt[:,1]})
+		g = sns.jointplot(x="x", y="y", data=df)
+		g.plot_joint(plt.scatter, c="gray", s=10, linewidth=.1, marker=".")
+		g.ax_joint.collections[0].set_alpha(0)
+		g.set_axis_labels("Dimension 1", "Dimension 2")
+
 	else: 
 		s_rt_wt = s_rt
+		w_rt_wt = w_rt
 
-	# plot original distribution
-	df = pd.DataFrame({'x':s[:,0],'y':s[:,1]})
-	g = sns.jointplot(x="x", y="y", data=df)
-	g.plot_joint(plt.scatter, c="gray", s=10, linewidth=.1, marker=".")
-	g.ax_joint.collections[0].set_alpha(0)
-	g.set_axis_labels("Dimension 1", "Dimension 2")
-
-	# plot mixed distribution
-	df = pd.DataFrame({'x':s_rt[:,0],'y':s_rt[:,1]})
-	g = sns.jointplot(x="x", y="y", data=df)
-	g.plot_joint(plt.scatter, c="gray", s=10, linewidth=.1, marker=".")
-	g.ax_joint.collections[0].set_alpha(0)
-	g.set_axis_labels("Dimension 1", "Dimension 2")
-
-	return s_rt_wt
+	return s_rt_wt, w_rt
 
 
 

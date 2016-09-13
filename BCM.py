@@ -225,7 +225,7 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
 
 # Plot the weights trajectory on top of objective function landscape
 
-def bcm_obj(s_rt_wt,w_min,w_max,reso,para):
+def bcm_obj(s_rt_wt,w_min,w_max,reso,para,ori_w = 0):
 
     """
     Parameter: 
@@ -234,6 +234,7 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para):
     w_max: maximun range of objective function landscape
     reso: resolution of weights grid
     para: parameters for training local learnin rule 
+    ori_w: for laplace data, plot the original weights
     """
 
     w = np.linspace(w_min,w_max,reso)
@@ -253,7 +254,8 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para):
     n_row = len(obj_choice)
     n_col = len(nonlinear_choice)
 
-    fig, ax = plt.subplots(n_row, n_col,figsize=(12,12), sharex=True, sharey=True)
+    fig, ax = plt.subplots(n_row, n_col,figsize=(12,6), sharex=True, sharey=True)
+    ori_w = ori_w * (w_max ** 0.5)
     for i in range(n_row):
         for j in range(n_col):
             obj_landscape = obj(s_rt_wt,w,obj_type = obj_choice[i],nonlinear = nonlinear_choice[j])
@@ -262,6 +264,7 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para):
             with sns.axes_style('white'):
                 c = ax[i,j].contour(wx,wy,obj_landscape.reshape(wx.shape),levels=levels, zorder=-10, cmap=plt.cm.get_cmap('viridis'))
                 ax[i,j].plot(s_rt_wt[:,0],s_rt_wt[:,1],'.k', ms=4)
+                ax[i,j].set_aspect(1)
 
             plt.grid('on')
             plt.colorbar(c, ax=ax[i,j])
@@ -271,10 +274,15 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para):
             obj_type = obj_choice[i]
 
             # Traing with BCM local learning rule
+            if  obj_choice == 'kurtosis':
+                    eta = 0.00005
+
             BCM_data = bcm(eta = eta,n_epoch = n_epoch,batch = batch,ny = ny,tau = tau, thres = 0, p = p,random_state = None, shuffle = True, nonlinear = nonlinear, obj_type = obj_type,decay = decay)
             BCM_data.fit(s_rt_wt)
             BCM_data_w = np.vstack(BCM_data.w_track)
-            
+
+            ax[i,j].plot([0,ori_w[0][0]],[0,ori_w[0][1]])
+            ax[i,j].plot([0,ori_w[1][0]],[0,ori_w[1][1]])
             ax[i,j].plot(BCM_data_w[:,0],BCM_data_w[:,1],'g')
             ax[i,j].plot(BCM_data_w[-1,0],BCM_data_w[-1,1],'y*',ms = 15)
             ax[i,j].plot(BCM_data_w[:,2],BCM_data_w[:,3],'r')
