@@ -70,6 +70,7 @@ def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = Fal
 	# sns.plt.title(title_ori)
 	g.ax_joint.collections[0].set_alpha(0)
 	g.set_axis_labels("Dimension 1", "Dimension 2")
+
 	# Conduct rotation and mixture
 	# Generate rotation matrix
 	if rotation:

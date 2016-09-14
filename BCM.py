@@ -72,16 +72,23 @@ class bcm:
                     y[j] = self._activation(np.dot(xi,self.w_[:,j]),nonlinear = self.nonlinear)
                     if self.obj_type == 'QBCM':
                         if self.nonlinear == 'Sigmoid':
-                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ self.eta * xi[:,None] * dsigmoid(y[j]) * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
-                        else:
+                                self.w_[:,j][:,None] = self.w_[:,j][:,None]+ self.eta * xi[:,None] * dsigmoid(y[j]) * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
+                        elif (self.nonlinear == 'Relu')|(self.nonlinear == None):
                             self.w_[:,j][:,None] = self.w_[:,j][:,None]+ self.eta * xi[:,None] * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
+                        else:
+                            print('Wrong nonlinearty')
                     elif self.obj_type == 'kurtosis':
                         if self.nonlinear == 'Sigmoid':
                             self.w_[:,j][:,None] = self.w_[:,j][:,None]+ 4 * self.eta * xi[:,None]* dsigmoid(y[j]) * y[j] * (y[j] ** 2 - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
                             self.w_[:,j] = self.w_[:,j]/np.sqrt(np.sum((self.w_[:,j])**2))               # L2 norm of kurtosis learnin rule
-                        else:
+                        elif (self.nonlinear == 'Relu')|(self.nonlinear == None):
                             self.w_[:,j][:,None] = self.w_[:,j][:,None]+ 4 * self.eta * xi[:,None]* y[j]*(y[j]**2 - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
                             self.w_[:,j] = self.w_[:,j]/np.sqrt(np.sum((self.w_[:,j])**2))     # L2 norm of kurtosis learnin rule
+                        else:
+                            print('Wrong nonlinearty')
+                    else:
+                        print('Wrong objective function')
+
                     threshold[j] = self._ema(x = threshold[j],y = y[j],power = self.p)       
                     bcm_obj[j] = obj(X,w = self.w_[:,j],obj_type = self.obj_type,nonlinear = self.nonlinear)
                 w_tmp = np.concatenate(self.w_.T, axis=0)    # make 2*2 matrix into 1*4, preparing for weight tracking
@@ -123,7 +130,9 @@ def obj(X,w,obj_type='QBCM',nonlinear='Relu'):
         c = sigmoid (c)
     elif nonlinear == 'Relu':
         c = (c>=0)* c
-        
+    
+    obj = 0
+
     if obj_type == 'QBCM':
         obj1 = (c**3).mean(axis = 0)
         obj2 = (c**2).mean(axis = 0)
@@ -136,7 +145,9 @@ def obj(X,w,obj_type='QBCM',nonlinear='Relu'):
         obj1 = (c**3).mean(axis = 0)
         obj2 = (c**2).mean(axis = 0)
         obj = np.divide(obj1,obj2**1.5)
-        
+    else:
+        print('Wrong objective function')
+
     return obj
 
 # Perform zca whitening
@@ -275,7 +286,7 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para,ori_w = 0):
 
             # Traing with BCM local learning rule
             if  obj_choice == 'kurtosis':
-                    eta = 0.00005
+                eta = 0.00005
 
             BCM_data = bcm(eta = eta,n_epoch = n_epoch,batch = batch,ny = ny,tau = tau, thres = 0, p = p,random_state = None, shuffle = True, nonlinear = nonlinear, obj_type = obj_type,decay = decay)
             BCM_data.fit(s_rt_wt)
