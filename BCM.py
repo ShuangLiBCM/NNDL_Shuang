@@ -223,7 +223,6 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
     ax4.plot(BCM_data_w[:,3],'r',label = 'weight')
     ax4.set_title("BCM unit %d , weights %d" % (1,1))
     ax4.set_xlabel('# of iterations')
-
     BCM_data_titles= ["BCM %d objective function " % i for i in range (len(BCM_data_w.T))]
 
     # plot the objective function
@@ -233,6 +232,7 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
         plt.plot(BCM_data_obj[:plt_range,i])
         plt.title(BCM_data_titles[i])
         plt.xlabel('# of iterations')
+        plt.axis([0,plt_range,-1000,1000])
 
 # Plot the weights trajectory on top of objective function landscape
 
@@ -254,13 +254,13 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para,ori_w = 0):
     obj_choice = ['QBCM','kurtosis']
     nonlinear_choice = ['Relu','Sigmoid',None]
 
-    ny = para[0]   
-    n_epoch = para[1]
-    p = para[2]
-    eta = para[3]
-    tau = para[4]
-    batch = para[5]
-    decay = para[6]
+    p = para[0]   
+    ny = para[1]
+    tau = para[2]
+    batch = para[3]
+    n_epoch = para[4]
+    decay = para[5]
+    eta = para[6]
     # Plot a gallery of images
     n_row = len(obj_choice)
     n_col = len(nonlinear_choice)
@@ -279,16 +279,12 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para,ori_w = 0):
 
             plt.grid('on')
             plt.colorbar(c, ax=ax[i,j])
-            
-            # Parameter for training
-            nonlinear = nonlinear_choice[j]
-            obj_type = obj_choice[i]
 
             # Traing with BCM local learning rule
             if  obj_choice == 'kurtosis':
                 eta = 0.00005
 
-            BCM_data = bcm(eta = eta,n_epoch = n_epoch,batch = batch,ny = ny,tau = tau, thres = 0, p = p,random_state = None, shuffle = True, nonlinear = nonlinear, obj_type = obj_type,decay = decay)
+            BCM_data = bcm(eta = eta[i * n_row + j],n_epoch = n_epoch[i * n_row + j],batch = batch,ny = ny,tau = tau, thres = 0, p = p,random_state = None, shuffle = True, nonlinear = nonlinear_choice[j], obj_type = obj_choice[i] , decay = decay[i * n_row + j])
             BCM_data.fit(s_rt_wt)
             BCM_data_w = np.vstack(BCM_data.w_track)
 

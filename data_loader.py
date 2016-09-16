@@ -99,12 +99,11 @@ def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = Fal
 		s_rt_wt = np.dot(s_rt,ZCAMatrix)
 		w_rt_wt = np.dot(w_rt,ZCAMatrix)
 		# plot mixed distribution
-		df = pd.DataFrame({'x':s_rt[:,0],'y':s_rt_wt[:,1]})
+		df = pd.DataFrame({'x':s_rt_wt[:,0],'y':s_rt_wt[:,1]})
 		g = sns.jointplot(x="x", y="y", data=df)
 		g.plot_joint(plt.scatter, c="gray", s=10, linewidth=.1, marker=".")
 		g.ax_joint.collections[0].set_alpha(0)
 		g.set_axis_labels("Dimension 1", "Dimension 2")
-
 	else: 
 		s_rt_wt = s_rt
 		w_rt_wt = w_rt
