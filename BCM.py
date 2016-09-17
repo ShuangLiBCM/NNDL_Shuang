@@ -69,21 +69,22 @@ class bcm:
             for i, xi in enumerate(X):   # elementwise training for all samples
                 y = np.zeros(self.ny)
                 for j in range(self.ny):
-                    y[j] = self._activation(np.dot(xi,self.w_[:,j]),nonlinear = self.nonlinear)
+                    y[j] = self._activation(np.dot(xi, self.w_[:, j]), nonlinear=self.nonlinear)
                     if self.obj_type == 'QBCM':
                         if self.nonlinear == 'Sigmoid':
-                                self.w_[:,j][:,None] = self.w_[:,j][:,None]+ self.eta * xi[:,None] * dsigmoid(y[j]) * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
-                        elif (self.nonlinear == 'Relu')|(self.nonlinear == None):
-                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ self.eta * xi[:,None] * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
+                            self.w_[:, j][:, None] = self.w_[:, j][:, None]+ self.eta * xi[:, None] * dsigmoid(y[j]) * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
+                        # self.w_[:, j][:, None] = self.w_[:, j][:, None]- self.eta * xi[:, None] * dsigmoid(y[j]) * y[j]
+                        elif (self.nonlinear == 'Relu') | (self.nonlinear == None):
+                            self.w_[:, j][:, None] = self.w_[:, j][:, None]+ self.eta * xi[:, None] * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
                         else:
                             print('Wrong nonlinearty')
                     elif self.obj_type == 'kurtosis':
                         if self.nonlinear == 'Sigmoid':
-                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ 4 * self.eta * xi[:,None]* dsigmoid(y[j]) * y[j] * (y[j] ** 2 - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
-                            self.w_[:,j] = self.w_[:,j]/np.sqrt(np.sum((self.w_[:,j])**2))               # L2 norm of kurtosis learnin rule
+                            self.w_[:,j][:, None] = self.w_[:, j][:, None]+ 4 * self.eta * xi[:, None] * dsigmoid(y[j]) * y[j] * (y[j] ** 2 - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
+                            self.w_[:,j] = self.w_[:, j]/np.sqrt(np.sum((self.w_[:, j])**2))               # L2 norm of kurtosis learnin rule
                         elif (self.nonlinear == 'Relu')|(self.nonlinear == None):
-                            self.w_[:,j][:,None] = self.w_[:,j][:,None]+ 4 * self.eta * xi[:,None]* y[j]*(y[j]**2 - threshold[j])- self.eta * self.decay * self.w_[:,j][:,None]
-                            self.w_[:,j] = self.w_[:,j]/np.sqrt(np.sum((self.w_[:,j])**2))     # L2 norm of kurtosis learnin rule
+                            self.w_[:,j][:, None] = self.w_[:, j][:, None]+ 4 * self.eta * xi[:, None] * y[j]*(y[j]**2 - threshold[j]) - self.eta * self.decay * self.w_[:, j][:, None]
+                            self.w_[:,j] = self.w_[:, j]/np.sqrt(np.sum((self.w_[:, j])**2))     # L2 norm of kurtosis learnin rule
                         else:
                             print('Wrong nonlinearty')
                     else:
@@ -103,14 +104,14 @@ class bcm:
         return X[r]
     
     #Implementing exponential moving average
-    def _ema(self,x,y,power = 2):    
+    def _ema(self, x, y, power = 2):
         # x is the iterative variable, y is the function being averaged
         h = np.exp(-1/self.tau)
         return x*h+(y**power)*(1-h)
 
     def _activation(self,y,nonlinear = None):
         if nonlinear == 'Sigmoid':
-            y = sigmoid (y)
+            y = sigmoid(y)
         elif nonlinear == 'Relu':
             y = (y>=0)* y
         return y
@@ -124,19 +125,20 @@ def sigmoid(z):
     return 1/(1+np.exp(-z))
 
 # objective function using all data
-def obj(X,w,obj_type='QBCM',nonlinear='Relu'):
-    c = np.dot(X,w)
+def obj(X, w, obj_type = 'QBCM', nonlinear = 'Sigmoid'):
+    c = np.dot(X, w)
     if nonlinear == 'Sigmoid':
-        c = sigmoid (c)
+        c = sigmoid(c)
     elif nonlinear == 'Relu':
         c = (c>=0)* c
-    
+
     obj = 0
 
     if obj_type == 'QBCM':
         obj1 = (c**3).mean(axis = 0)
         obj2 = (c**2).mean(axis = 0)
         obj = obj1/3 - obj2**2/4
+    #    obj = - obj2/2
     elif obj_type == 'kurtosis':
         obj1 = (c**4).mean(axis = 0)
         obj2 = (c**2).mean(axis = 0)
@@ -232,11 +234,11 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
         plt.plot(BCM_data_obj[:plt_range,i])
         plt.title(BCM_data_titles[i])
         plt.xlabel('# of iterations')
-        plt.axis([0,plt_range,-1000,1000])
+        #plt.axis([0,plt_range,-1000,1000])
 
 # Plot the weights trajectory on top of objective function landscape
 
-def bcm_obj(s_rt_wt,w_min,w_max,reso,para,ori_w = 0):
+def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_select = None, ori_w = 0):
 
     """
     Parameter: 
@@ -246,13 +248,15 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para,ori_w = 0):
     reso: resolution of weights grid
     para: parameters for training local learnin rule 
     ori_w: for laplace data, plot the original weights
+    obj_select: str, type of objective function if specified, sweep across all combination if none
+    Nolinear_select: str, type of nonlinearity if specified, sweep across all combination if none
     """
 
-    w = np.linspace(w_min,w_max,reso)
-    wx,wy = np.meshgrid(w,w)
-    w = np.vstack((wx.ravel(),wy.ravel()))
-    obj_choice = ['QBCM','kurtosis']
-    nonlinear_choice = ['Relu','Sigmoid',None]
+    w = np.linspace(w_min, w_max, reso)
+    wx,wy = np.meshgrid(w, w)
+    w = np.vstack((wx.ravel(), wy.ravel()))
+    obj_choice = ['QBCM', 'kurtosis']
+    nonlinear_choice = ['Relu', 'Sigmoid', None]
 
     p = para[0]   
     ny = para[1]
@@ -262,36 +266,63 @@ def bcm_obj(s_rt_wt,w_min,w_max,reso,para,ori_w = 0):
     decay = para[5]
     eta = para[6]
     # Plot a gallery of images
-    n_row = len(obj_choice)
-    n_col = len(nonlinear_choice)
+    if obj_select == None:
+        n_row = len(obj_choice)
+    else: 
+        n_row = 1
+        obj_index = obj_choice.index(obj_select)
+        nonlinear_index = nonlinear_choice.index(nonlinear_select)
 
-    fig, ax = plt.subplots(n_row, n_col,figsize=(12,6), sharex=True, sharey=True)
+    if nonlinear_select == None:
+        n_col = len(nonlinear_choice)
+    else:
+        n_col = 1
+
+    fig, ax = plt.subplots(n_row, n_col, figsize=(12, 6), sharex=True, sharey=True)
     ori_w = ori_w * (w_max ** 0.5)
+
     for i in range(n_row):
         for j in range(n_col):
-            obj_landscape = obj(s_rt_wt,w,obj_type = obj_choice[i],nonlinear = nonlinear_choice[j])
+            if (n_row + n_col) > 2:
+                obj_type = obj_choice[i]
+                nonlinear = nonlinear_choice[j]
+                para_index = i * n_row + j
+            else:
+                obj_type = obj_select
+                nonlinear = nonlinear_select
+                para_index = obj_index * len(obj_choice) + nonlinear_index
+
+            obj_landscape = obj(s_rt_wt, w, obj_type=obj_type, nonlinear=nonlinear)
+            title_set = [obj_type, nonlinear]
+
             nbins=20
             levels = np.percentile(obj_landscape, np.linspace(0,100,nbins))
+
+
             with sns.axes_style('white'):
-                c = ax[i,j].contour(wx,wy,obj_landscape.reshape(wx.shape),levels=levels, zorder=-10, cmap=plt.cm.get_cmap('viridis'))
-                ax[i,j].plot(s_rt_wt[:,0],s_rt_wt[:,1],'.k', ms=4)
-                ax[i,j].set_aspect(1)
+                if (n_row + n_col) > 2:
+                    g = ax[i, j]
+                else:
+                    g = ax
+
+                c = g.contour(wx, wy, obj_landscape.reshape(wx.shape), levels=levels, zorder=-10, cmap=plt.cm.get_cmap('viridis'))
+                g.plot(s_rt_wt[:, 0], s_rt_wt[:, 1], '.k', ms=4)
+                g.set_aspect(1)
 
             plt.grid('on')
-            plt.colorbar(c, ax=ax[i,j])
+            plt.colorbar(c, ax=g)
 
-            # Traing with BCM local learning rule
-            if  obj_choice == 'kurtosis':
-                eta = 0.00005
+            # Training with BCM local learning rule
 
-            BCM_data = bcm(eta = eta[i * n_row + j],n_epoch = n_epoch[i * n_row + j],batch = batch,ny = ny,tau = tau, thres = 0, p = p,random_state = None, shuffle = True, nonlinear = nonlinear_choice[j], obj_type = obj_choice[i] , decay = decay[i * n_row + j])
-            BCM_data.fit(s_rt_wt)
-            BCM_data_w = np.vstack(BCM_data.w_track)
+            bcm_data = bcm(eta=eta[para_index], n_epoch=n_epoch[para_index], batch=batch, ny=ny, tau=tau, thres=0, p=p, random_state=None, shuffle=True, nonlinear=nonlinear, obj_type=obj_type, decay=decay[para_index])
 
-            ax[i,j].plot([0,ori_w[0][0]],[0,ori_w[0][1]])
-            ax[i,j].plot([0,ori_w[1][0]],[0,ori_w[1][1]])
-            ax[i,j].plot(BCM_data_w[:,0],BCM_data_w[:,1],'g')
-            ax[i,j].plot(BCM_data_w[-1,0],BCM_data_w[-1,1],'y*',ms = 15)
-            ax[i,j].plot(BCM_data_w[:,2],BCM_data_w[:,3],'r')
-            ax[i,j].set_title((obj_choice[i],nonlinear_choice[j]))
-            ax[i,j].plot(BCM_data_w[-1,2],BCM_data_w[-1,3],'y*',ms = 15)
+            bcm_data.fit(s_rt_wt)
+            bcm_data_w = np.vstack(bcm_data.w_track)
+
+            g.plot([0, ori_w[0][0]], [0, ori_w[0][1]])
+            g.plot([0, ori_w[1][0]], [0, ori_w[1][1]])
+            g.plot(bcm_data_w[:, 0], bcm_data_w[:, 1], 'g')
+            g.plot(bcm_data_w[-1, 0], bcm_data_w[-1, 1], 'y*', ms=15)
+            g.plot(bcm_data_w[:, 2], bcm_data_w[:, 3], 'r')
+            g.set_title(title_set)
+            g.plot(bcm_data_w[-1, 2], bcm_data_w[-1, 3], 'y*', ms=15)

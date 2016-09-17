@@ -48,7 +48,7 @@ def load_Iris(whiten = True):
 
 # Generate laplace distributed data
 
-def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = False, whiten = True, rotation = False):
+def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = False, whiten = True, rotation = False, Affine = False):
 	# Sample from the laplace distribution
 	s = np.random.laplace(loc,scale,[sample_size,dimension])  
 	w = np.eye(2)
@@ -57,8 +57,8 @@ def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = Fal
 	# make data skewed with a half-squaring
 
 	if skew:
-	    s[:,1] = stats.skewnorm.rvs(14., size=len(s))
-	    title_ori = 'Skewed original distribution'
+		s[:,1] = stats.skewnorm.rvs(14., size=len(s))
+		title_ori = 'Skewed original distribution'
 	else:
 		title_ori = 'Original distribution'
 
@@ -73,11 +73,12 @@ def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = Fal
 
 	# Conduct rotation and mixture
 	# Generate rotation matrix
+	A = np.eye(2)
 	if rotation:
 		theta = np.pi/4      # 45 degree rotation
 		A = np.array(((np.cos(theta),- np.sin(theta)),(np.sin(theta), np.cos(theta))))
 		title_trans = 'Rotated distribution'
-	else: 
+	elif Affine:
 		A = np.random.randn(dimension,dimension)
 		title_trans = 'Affine tranformed distribution'
 	#A = np.dot(A, A.T)
@@ -95,6 +96,8 @@ def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = Fal
 
 
 	if whiten:
+		# Demean is critical, especially for skewed data
+		s_rt = s_rt - s_rt.mean(axis = 0)
 		ZCAMatrix = zca_whitening_matrix(s_rt.T)
 		s_rt_wt = np.dot(s_rt,ZCAMatrix)
 		w_rt_wt = np.dot(w_rt,ZCAMatrix)
