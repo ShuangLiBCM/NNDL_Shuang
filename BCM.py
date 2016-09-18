@@ -33,7 +33,7 @@ class bcm:
     obj: list, trakcing the trajectory of values of certain objective function, list length is number of weight updats, and each list contains array with 1 * num of output neurons
 
     """
-    def __init__(self, eta = 0.1, n_epoch=10, ny=1, batch=1, tau=100.0, thres=0, p = 2,random_state = None, shuffle = True, nonlinear = None, obj_type = 'QBCM',decay = 0.0):
+    def __init__(self, eta = 0.1, n_epoch=10, ny=1, batch=1, tau=100.0, thres=0, p = 2,random_state = None, shuffle = True, nonlinear = 'None', obj_type = 'QBCM',decay = 0.0):
         self.eta = eta
         self.n_epoch = n_epoch
         self.ny = ny
@@ -74,7 +74,7 @@ class bcm:
                         if self.nonlinear == 'Sigmoid':
                             self.w_[:, j][:, None] = self.w_[:, j][:, None]+ self.eta * xi[:, None] * dsigmoid(y[j]) * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
                         # self.w_[:, j][:, None] = self.w_[:, j][:, None]- self.eta * xi[:, None] * dsigmoid(y[j]) * y[j]
-                        elif (self.nonlinear == 'Relu') | (self.nonlinear == None):
+                        elif (self.nonlinear == 'Relu') | (self.nonlinear == 'None'):
                             self.w_[:, j][:, None] = self.w_[:, j][:, None]+ self.eta * xi[:, None] * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
                         else:
                             print('Wrong nonlinearty')
@@ -82,7 +82,7 @@ class bcm:
                         if self.nonlinear == 'Sigmoid':
                             self.w_[:,j][:, None] = self.w_[:, j][:, None]+ 4 * self.eta * xi[:, None] * dsigmoid(y[j]) * y[j] * (y[j] ** 2 - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
                             self.w_[:,j] = self.w_[:, j]/np.sqrt(np.sum((self.w_[:, j])**2))               # L2 norm of kurtosis learnin rule
-                        elif (self.nonlinear == 'Relu')|(self.nonlinear == None):
+                        elif (self.nonlinear == 'Relu')|(self.nonlinear == 'None'):
                             self.w_[:,j][:, None] = self.w_[:, j][:, None]+ 4 * self.eta * xi[:, None] * y[j]*(y[j]**2 - threshold[j]) - self.eta * self.decay * self.w_[:, j][:, None]
                             self.w_[:,j] = self.w_[:, j]/np.sqrt(np.sum((self.w_[:, j])**2))     # L2 norm of kurtosis learnin rule
                         else:
@@ -256,7 +256,7 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
     wx,wy = np.meshgrid(w, w)
     w = np.vstack((wx.ravel(), wy.ravel()))
     obj_choice = ['QBCM', 'kurtosis']
-    nonlinear_choice = ['Relu', 'Sigmoid', None]
+    nonlinear_choice = ['Relu', 'Sigmoid', 'None']
 
     p = para[0]   
     ny = para[1]
@@ -271,12 +271,12 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
     else: 
         n_row = 1
         obj_index = obj_choice.index(obj_select)
-        nonlinear_index = nonlinear_choice.index(nonlinear_select)
 
     if nonlinear_select == None:
         n_col = len(nonlinear_choice)
     else:
         n_col = 1
+        nonlinear_index = nonlinear_choice.index(nonlinear_select)
 
     fig, ax = plt.subplots(n_row, n_col, figsize=(12, 6), sharex=True, sharey=True)
     ori_w = ori_w * (w_max ** 0.5)
@@ -286,11 +286,11 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
             if (n_row + n_col) > 2:
                 obj_type = obj_choice[i]
                 nonlinear = nonlinear_choice[j]
-                para_index = i * n_row + j
+                para_index = i* n_row + j
             else:
                 obj_type = obj_select
                 nonlinear = nonlinear_select
-                para_index = obj_index * len(obj_choice) + nonlinear_index
+                para_index = obj_index * len(nonlinear_choice) + nonlinear_index 
 
             obj_landscape = obj(s_rt_wt, w, obj_type=obj_type, nonlinear=nonlinear)
             title_set = [obj_type, nonlinear]
