@@ -33,7 +33,7 @@ class bcm:
     obj: list, trakcing the trajectory of values of certain objective function, list length is number of weight updats, and each list contains array with 1 * num of output neurons
 
     """
-    def __init__(self, eta = 0.1, n_epoch=10, ny=1, batch=1, tau=100.0, thres=0, p = 2,random_state = None, shuffle = True, nonlinear = 'None', obj_type = 'QBCM',decay = 0.0):
+    def __init__(self, eta = 0.1, n_epoch=10, ny=1, batch=1, tau=100.0, thres=0, p = 2,random_state = None, shuffle = True, nonlinear = 'Relu', obj_type = 'QBCM',decay = 0.0):
         self.eta = eta
         self.n_epoch = n_epoch
         self.ny = ny
@@ -176,6 +176,18 @@ def zca_whitening_matrix(X):
     return ZCAMatrix
 
 
+def plot_gallery(images, titles, h, w, n_row=3, n_col=4):
+    """Helper function to plot a gallery of images"""
+    plt.figure(figsize=(1.8 * n_col, 2.4 * n_row))
+    plt.subplots_adjust(bottom=0, left=.01, right=.99, top=.90, hspace=.35)
+    for i in range(n_row * n_col):
+        plt.subplot(n_row, n_col, i + 1)
+        plt.imshow(images[i], cmap=plt.cm.gray)
+        plt.title(titles[i], size=12)
+        plt.xticks(())
+        plt.yticks(())
+
+
 # Plot trained BCM output, threshold, weights and objective function
 def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, thres = 0, p = 2,random_state = None, shuffle = True, nonlinear = 'Relu', obj_type = 'QBCM',decay = 0.0):
     # Initialize a BCM class onject
@@ -188,7 +200,7 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
     print("done in %0.3fs" % (time()-t0))
 
     # Convert list object to array
-    plt_range = n_epoch * len(s_rt_wt)
+    plt_range = n_epoch * len(s_rt_wt[:,0])
     BCM_data_thres = np.vstack(BCM_data.thres)
     BCM_data_out = np.vstack(BCM_data.y_thres)
     BCM_data_w = np.vstack(BCM_data.w_track)
@@ -214,18 +226,29 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
 
     BCM_data_titles= ["BCM weights %d" % i for i in range (len(BCM_data_w.T))]
 
-    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row')
-    ax1.plot(BCM_data_w[:,0],'r',label = 'weight')
-    ax1.set_title("BCM unit %d , weights %d" % (0,0))
-    ax2.plot(BCM_data_w[:,2],'r',label = 'weight')
-    ax2.set_title("BCM unit %d , weights %d" % (1,0))
-    ax3.plot(BCM_data_w[:,1],'r',label = 'weight')
-    ax3.set_title("BCM unit %d , weights %d" % (0,1))
-    ax3.set_xlabel('# of iterations')
-    ax4.plot(BCM_data_w[:,3],'r',label = 'weight')
-    ax4.set_title("BCM unit %d , weights %d" % (1,1))
-    ax4.set_xlabel('# of iterations')
-    BCM_data_titles= ["BCM %d objective function " % i for i in range (len(BCM_data_w.T))]
+    if s_rt_wt.shape[1] > 2:
+        h = 14
+        w = 14
+        BCMdigits = []
+        for i in range(ny):
+            BCMdigits_tmp = BCM_data.w_[:,i];
+            BCMdigits.append(BCMdigits_tmp.reshape(h,w))
+            
+        BCMdigits_titles = ["BCMdigits %d" % i for i in range (ny)]
+        plot_gallery(BCMdigits,BCMdigits_titles,h,w,n_row= 1, n_col=2)
+    else:
+        f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row')
+        ax1.plot(BCM_data_w[:,0],'r',label = 'weight')
+        ax1.set_title("BCM unit %d , weights %d" % (0,0))
+        ax2.plot(BCM_data_w[:,2],'r',label = 'weight')
+        ax2.set_title("BCM unit %d , weights %d" % (1,0))
+        ax3.plot(BCM_data_w[:,1],'r',label = 'weight')
+        ax3.set_title("BCM unit %d , weights %d" % (0,1))
+        ax3.set_xlabel('# of iterations')
+        ax4.plot(BCM_data_w[:,3],'r',label = 'weight')
+        ax4.set_title("BCM unit %d , weights %d" % (1,1))
+        ax4.set_xlabel('# of iterations')
+        BCM_data_titles= ["BCM %d objective function " % i for i in range (len(BCM_data_w.T))]
 
     # plot the objective function
     plt.figure()
@@ -286,7 +309,7 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
             if (n_row + n_col) > 2:
                 obj_type = obj_choice[i]
                 nonlinear = nonlinear_choice[j]
-                para_index = i* n_row + j
+                para_index = i* n_col + j
             else:
                 obj_type = obj_select
                 nonlinear = nonlinear_select
@@ -319,8 +342,10 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
             bcm_data.fit(s_rt_wt)
             bcm_data_w = np.vstack(bcm_data.w_track)
 
-            g.plot([0, ori_w[0][0]], [0, ori_w[0][1]])
-            g.plot([0, ori_w[1][0]], [0, ori_w[1][1]])
+            if len(ori_w) > 1:
+                g.plot([0, ori_w[0][0]], [0, ori_w[0][1]])
+                g.plot([0, ori_w[1][0]], [0, ori_w[1][1]])
+
             g.plot(bcm_data_w[:, 0], bcm_data_w[:, 1], 'g')
             g.plot(bcm_data_w[-1, 0], bcm_data_w[-1, 1], 'y*', ms=15)
             g.plot(bcm_data_w[:, 2], bcm_data_w[:, 3], 'r')

@@ -14,21 +14,25 @@ from scipy import stats
 # http://scikit-learn.org/stable/auto_examples/datasets/plot_iris_dataset.html
 def load_Iris(whiten = True):
 	
-	df = pd.read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data', header=None)
-	df.tail()   # Visualize in the table last rows of the dataframe
+	#df = pd.read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data', header=None)
+	#df.tail()   # Visualize in the table last rows of the dataframe
 
-	y = df.iloc[:, 4].values  # pandas dataframe, select data by location index
-	y = np.where(y == 'Iris-setosa',1,-1)
-	s_rt = df.iloc[:,[0,2]].values
-	# Remove the mean
-	s_rt = s_rt - s_rt.mean(axis = 0)
+	#y = df.iloc[:, 4].values  # pandas dataframe, select data by location index
+	#y = np.where(y == 'Iris-setosa',1,-1)
+	#s_rt = df.iloc[:,[0,2]].values
+	
+	## Remove the mean
+	#s_rt = s_rt - s_rt.mean(axis = 0)
 
-	# Perform zca whitenning
-	if whiten:
-		ZCAMatrix = zca_whitening_matrix(s_rt.T)
-		s_rt_wt = np.dot(s_rt,ZCAMatrix)
-	else: 
-		s_rt_wt = s_rt
+	## Perform zca whitenning
+	#if whiten:
+	#	ZCAMatrix = zca_whitening_matrix(s_rt.T)
+	#	s_rt_wt = np.dot(s_rt,ZCAMatrix)
+	#else: 
+	#	s_rt_wt = s_rt
+
+	
+	s_rt_wt = np.load('Iris_rt_wt.npy')
 
 	# Generate 2d satter plot of the whitened data
 	df = pd.DataFrame({'x':s_rt_wt[:,0],'y':s_rt_wt[:,1]})
@@ -43,7 +47,7 @@ def load_Iris(whiten = True):
 	plt.ylabel('sepal length')
 	plt.legend(loc = 'upper left')
 
-	return s_rt_wt
+	return s_rt_wt, g
 
 
 # Generate laplace distributed data
