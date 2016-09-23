@@ -9,7 +9,7 @@ import seaborn as sns
 # Update weight per sample
 # Enable 'QBCM' and 'kurtosis' objective function
 # Hasn't applied batch learning
-# Enable decat time constant
+# Enable decay time constant
 class bcm:
     """BCM learning
     Parameter:
@@ -73,7 +73,6 @@ class bcm:
                     if self.obj_type == 'QBCM':
                         if self.nonlinear == 'Sigmoid':
                             self.w_[:, j][:, None] = self.w_[:, j][:, None]+ self.eta * xi[:, None] * dsigmoid(y[j]) * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
-                        # self.w_[:, j][:, None] = self.w_[:, j][:, None]- self.eta * xi[:, None] * dsigmoid(y[j]) * y[j]
                         elif (self.nonlinear == 'Relu') | (self.nonlinear == 'None'):
                             self.w_[:, j][:, None] = self.w_[:, j][:, None]+ self.eta * xi[:, None] * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
                         else:
@@ -226,6 +225,7 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
 
     BCM_data_titles= ["BCM weights %d" % i for i in range (len(BCM_data_w.T))]
 
+    # Plot evolvement of weights for 2dimension data and final weight for high d data
     if s_rt_wt.shape[1] > 2:
         h = 14
         w = 14
@@ -248,7 +248,6 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
         ax4.plot(BCM_data_w[:,3],'r',label = 'weight')
         ax4.set_title("BCM unit %d , weights %d" % (1,1))
         ax4.set_xlabel('# of iterations')
-        BCM_data_titles= ["BCM %d objective function " % i for i in range (len(BCM_data_w.T))]
 
     # plot the objective function
     plt.figure()
@@ -258,9 +257,12 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
         plt.title(BCM_data_titles[i])
         plt.xlabel('# of iterations')
         #plt.axis([0,plt_range,-1000,1000])
+        BCM_data_titles= ["BCM %d objective function " % i for i in range (len(BCM_data_w.T))]
+
+
+    return BCM_data
 
 # Plot the weights trajectory on top of objective function landscape
-
 def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_select = None, ori_w = 0):
 
     """
@@ -281,6 +283,7 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
     obj_choice = ['QBCM', 'kurtosis']
     nonlinear_choice = ['Relu', 'Sigmoid', 'None']
 
+    # parameter passed through para
     p = para[0]   
     ny = para[1]
     tau = para[2]
@@ -288,7 +291,9 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
     n_epoch = para[4]
     decay = para[5]
     eta = para[6]
+
     # Plot a gallery of images
+    # if nolinearty and objective defined, train for a specific case, otherwise, train all the combinations
     if obj_select == None:
         n_row = len(obj_choice)
     else: 
