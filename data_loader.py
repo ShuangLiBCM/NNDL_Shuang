@@ -52,7 +52,7 @@ def load_Iris(whiten = True):
 
 # Generate laplace distributed data
 
-def load_laplace(loc = 0, scale = 1, sample_size = 1000,dimension = 2,skew = False, whiten = True, rotation = False, Affine = False):
+def load_laplace(loc = 0, scale = 1, sample_size = 1000 , dimension = 2,skew = False, whiten = True, rotation = False, Affine = False):
 	# Sample from the laplace distribution
 	s = np.random.laplace(loc,scale,[sample_size,dimension])  
 	w = np.eye(2)
