@@ -4,6 +4,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from time import time
 import seaborn as sns
+
+
 # Define BCM class by quadratic local learning rule
 # Relu/Sigmoid activation function
 # Update weight per sample
@@ -33,123 +35,139 @@ class bcm:
     obj: list, trakcing the trajectory of values of certain objective function, list length is number of weight updats, and each list contains array with 1 * num of output neurons
 
     """
-    def __init__(self, eta = 0.1, n_epoch=10, ny=1, batch=1, tau=100.0, thres=0, p = 2,random_state = None, shuffle = True, nonlinear = 'Relu', obj_type = 'QBCM',decay = 0.0):
+
+    def __init__(self, eta=0.1, n_epoch=10, ny=1, batch=1, tau=100.0, thres=0, p=2, seed=None, random_state=0,
+                 nonlinear='Relu', obj_type='QBCM', decay=0.0):
         self.eta = eta
         self.n_epoch = n_epoch
         self.ny = ny
         self.batch = batch
-        self.tau = tau  
-        self.thres = thres * np.ones(ny)
-        self.p = p    
-        self.shuffle = shuffle
+        self.tau = tau
+        self.thres = np.float32(thres * np.ones(ny))
+        self.p = p
         self.nonlinear = nonlinear
         self.obj_type = obj_type
-        self.y_thres = []      # Storaged y for studying effect of threshold
+        self.y_thres = []  # Storaged y for studying effect of threshold
         self.decay = decay
+        self.random_state = random_state
+        self.seed = seed
 
-        if random_state:
-            np.random.seed(random_state)
-            
     def fit(self, X):
-    
+
         # Weights initialized as normal distribution
-        self.w_ = np.random.randn(X.shape[1],self.ny) # 2*1
+        # if self.seed:
+
+        r_gen = np.random.RandomState(self.seed)
+        self.w_ = r_gen.randn(X.shape[1], self.ny)  # 2*1
         self.w_track = []
         self.obj = []
-        
+
         # Use elementwise training 
-        threshold = self.thres    # Auxillary veriables for calculating thresholds
+        threshold = self.thres  # Auxillary veriables for calculating thresholds
         self.thres = []
-        obj_x1 = np.zeros(self.ny)   # Two iterative terms in objective function
-        obj_x2 = np.zeros(self.ny)   # Two iterative terms in objective function
+        obj_x1 = np.zeros(self.ny)  # Two iterative terms in objective function
+        obj_x2 = np.zeros(self.ny)  # Two iterative terms in objective function
         bcm_obj = np.zeros(self.ny)
         for _ in range(self.n_epoch):
-            if self.shuffle:
-                X = self._shuffle(X)
-            for i, xi in enumerate(X):   # elementwise training for all samples
-                y = np.zeros(self.ny)
+        # for _ in range(1):
+            X = self._shuffle(X)
+            for i, xi in enumerate(X):  # elementwise training for all samples
+                y = np.float32(np.zeros(self.ny))
                 for j in range(self.ny):
                     y[j] = self._activation(np.dot(xi, self.w_[:, j]), nonlinear=self.nonlinear)
                     if self.obj_type == 'QBCM':
                         if self.nonlinear == 'Sigmoid':
-                            self.w_[:, j][:, None] = self.w_[:, j][:, None]+ self.eta * xi[:, None] * dsigmoid(y[j]) * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
+                            self.w_[:, j][:, None] = self.w_[:, j][:, None] + self.eta * xi[:, None] * dsigmoid(y[j]) * \
+                                                                              y[j] * (y[j] - threshold[
+                                j]) - self.eta * self.decay * self.w_[:, j][:, None]
                         elif (self.nonlinear == 'Relu') | (self.nonlinear == 'None'):
-                            self.w_[:, j][:, None] = self.w_[:, j][:, None]+ self.eta * xi[:, None] * y[j] * (y[j] - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
+                            self.w_[:, j][:, None] = self.w_[:, j][:, None] + self.eta * xi[:, None] * y[j] * (
+                            y[j] - threshold[j]) - self.eta * self.decay * self.w_[:, j][:, None]
                         else:
                             print('Wrong nonlinearty')
                     elif self.obj_type == 'kurtosis':
                         if self.nonlinear == 'Sigmoid':
-                            self.w_[:,j][:, None] = self.w_[:, j][:, None]+ 4 * self.eta * xi[:, None] * dsigmoid(y[j]) * y[j] * (y[j] ** 2 - threshold[j])- self.eta * self.decay * self.w_[:, j][:, None]
-                            self.w_[:,j] = self.w_[:, j]/np.sqrt(np.sum((self.w_[:, j])**2))               # L2 norm of kurtosis learnin rule
-                        elif (self.nonlinear == 'Relu')|(self.nonlinear == 'None'):
-                            self.w_[:,j][:, None] = self.w_[:, j][:, None]+ 4 * self.eta * xi[:, None] * y[j]*(y[j]**2 - threshold[j]) - self.eta * self.decay * self.w_[:, j][:, None]
-                            self.w_[:,j] = self.w_[:, j]/np.sqrt(np.sum((self.w_[:, j])**2))     # L2 norm of kurtosis learnin rule
+                            self.w_[:, j][:, None] = self.w_[:, j][:, None] + 4 * self.eta * xi[:, None] * dsigmoid(
+                                y[j]) * y[j] * (y[j] ** 2 - threshold[j]) - self.eta * self.decay * self.w_[:, j][:,
+                                                                                                    None]
+                            self.w_[:, j] = self.w_[:, j] / np.sqrt(
+                                np.sum((self.w_[:, j]) ** 2))  # L2 norm of kurtosis learnin rule
+                        elif (self.nonlinear == 'Relu') | (self.nonlinear == 'None'):
+                            self.w_[:, j][:, None] = self.w_[:, j][:, None] + 4 * self.eta * xi[:, None] * y[j] * (
+                            y[j] ** 2 - threshold[j]) - self.eta * self.decay * self.w_[:, j][:, None]
+                            self.w_[:, j] = self.w_[:, j] / np.sqrt(
+                                np.sum((self.w_[:, j]) ** 2))  # L2 norm of kurtosis learnin rule
                         else:
                             print('Wrong nonlinearty')
                     else:
                         print('Wrong objective function')
 
-                    threshold[j] = self._ema(x = threshold[j],y = y[j],power = self.p)       
-                    bcm_obj[j] = obj(X,w = self.w_[:,j],obj_type = self.obj_type,nonlinear = self.nonlinear)
-                w_tmp = np.concatenate(self.w_.T, axis=0)    # make 2*2 matrix into 1*4, preparing for weight tracking
+                    threshold[j] = self._ema(x=threshold[j], y=y[j], power=self.p)
+                    bcm_obj[j] = np.float32(obj(X, w=self.w_[:, j], obj_type=self.obj_type, nonlinear=self.nonlinear))
+                w_tmp = np.concatenate(self.w_.T, axis=0)  # make 2*2 matrix into 1*4, preparing for weight tracking
                 self.y_thres.append(y)
                 self.thres.append(threshold.tolist())
                 self.w_track.append(w_tmp.tolist())
                 self.obj.append(bcm_obj.tolist())
         return self
-    
-    def _shuffle(self,X):
-        r = np.random.permutation(len(X))
-        return X[r]
-    
-    #Implementing exponential moving average
-    def _ema(self, x, y, power = 2):
-        # x is the iterative variable, y is the function being averaged
-        h = np.exp(-1/self.tau)
-        return x*h+(y**power)*(1-h)
 
-    def _activation(self,y,nonlinear = None):
+    def _shuffle(self, X):
+        r_gen = np.random.RandomState(self.random_state)
+        r = r_gen.permutation(len(X))
+        return X[r]
+
+    # Implementing exponential moving average
+    def _ema(self, x, y, power=2):
+        # x is the iterative variable, y is the function being averaged
+        h = np.float32(np.exp(-1 / self.tau))
+        return np.float32(x * h + (y ** power) * (1 - h))
+
+    def _activation(self, y, nonlinear=None):
         if nonlinear == 'Sigmoid':
             y = sigmoid(y)
         elif nonlinear == 'Relu':
-            y = (y>=0)* y
+            y = (y >= 0) * y
         return y
+
 
 # Implement differentiation of sigmoid function
 def dsigmoid(z):
-    return sigmoid(z)*(1-(sigmoid(z)))
+    return sigmoid(z) * (1 - (sigmoid(z)))
+
 
 # Implement sigmoid function
 def sigmoid(z):
-    return 1/(1+np.exp(-z))
+    return 1 / (1 + np.exp(-z))
+
 
 # objective function using all data
-def obj(X, w, obj_type = 'QBCM', nonlinear = 'Sigmoid'):
+def obj(X, w, obj_type='QBCM', nonlinear='Sigmoid'):
     c = np.dot(X, w)
     if nonlinear == 'Sigmoid':
         c = sigmoid(c)
     elif nonlinear == 'Relu':
-        c = (c>=0)* c
+        c = (c >= 0) * c
 
     obj = 0
 
     if obj_type == 'QBCM':
-        obj1 = (c**3).mean(axis = 0)
-        obj2 = (c**2).mean(axis = 0)
-        obj = obj1/3 - obj2**2/4
-    #    obj = - obj2/2
+        obj1 = (c ** 3).mean(axis=0)
+        obj2 = (c ** 2).mean(axis=0)
+        obj = obj1 / 3 - obj2 ** 2 / 4
+    # obj = - obj2/2
     elif obj_type == 'kurtosis':
-        obj1 = (c**4).mean(axis = 0)
-        obj2 = (c**2).mean(axis = 0)
-        obj = obj1 - obj2**2*3
+        obj1 = (c ** 4).mean(axis=0)
+        obj2 = (c ** 2).mean(axis=0)
+        obj = obj1 - obj2 ** 2 * 3
     elif obj_type == 'skewness':
-        obj1 = (c**3).mean(axis = 0)
-        obj2 = (c**2).mean(axis = 0)
-        obj = np.divide(obj1,obj2**1.5)
+        obj1 = (c ** 3).mean(axis=0)
+        obj2 = (c ** 2).mean(axis=0)
+        obj = np.divide(obj1, obj2 ** 1.5)
     else:
         print('Wrong objective function')
 
     return obj
+
 
 # Perform zca whitening
 def zca_whitening_matrix(X):
@@ -161,17 +179,17 @@ def zca_whitening_matrix(X):
     OUTPUT: ZCAMatrix: [M x M] matrix
     """
     # Covariance matrix [column-wise variables]: Sigma = (X-mu)' * (X-mu) / N
-    sigma = np.cov(X, rowvar=True) # [M x M]
+    sigma = np.cov(X, rowvar=True)  # [M x M]
     # Singular Value Decomposition. X = U * np.diag(S) * V
-    U,S,V = np.linalg.svd(sigma)
-        # U: [M x M] eigenvectors of sigma.
-        # S: [M x 1] eigenvalues of sigma.
-        # V: [M x M] transpose of U
+    U, S, V = np.linalg.svd(sigma)
+    # U: [M x M] eigenvectors of sigma.
+    # S: [M x 1] eigenvalues of sigma.
+    # V: [M x M] transpose of U
     # Whitening constant: prevents division by zero
     epsilon = 1e-5
     # ZCA Whitening matrix: U * Lambda * U'
-    ZCAMatrix = np.dot(U, np.dot(np.diag(1.0/np.sqrt(S + epsilon)), U.T)) # [M x M]
-    #ZCAMatrix = np.dot(U, np.diag(1.0/np.sqrt(S + epsilon))) # [M x M]
+    ZCAMatrix = np.dot(U, np.dot(np.diag(1.0 / np.sqrt(S + epsilon)), U.T))  # [M x M]
+    # ZCAMatrix = np.dot(U, np.diag(1.0/np.sqrt(S + epsilon))) # [M x M]
     return ZCAMatrix
 
 
@@ -188,18 +206,21 @@ def plot_gallery(images, titles, h, w, n_row=3, n_col=4):
 
 
 # Plot trained BCM output, threshold, weights and objective function
-def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, thres = 0, p = 2,random_state = None, shuffle = True, nonlinear = 'Relu', obj_type = 'QBCM',decay = 0.0):
+def bcm_train(s_rt_wt, eta=0.0001, n_epoch=10, batch=1, ny=2, tau=200, thres=0, p=2, seed = None, random_state=None, shuffle=True,
+              nonlinear='Relu', obj_type='QBCM', decay=0.0):
     # Initialize a BCM class onject
-    BCM_data = bcm(eta = eta,n_epoch = n_epoch,batch = batch,ny = ny,tau = tau, thres = thres, p = p,random_state=random_state , shuffle = shuffle, nonlinear = nonlinear, obj_type = obj_type, decay = decay)
+    BCM_data = bcm(eta=eta, n_epoch=n_epoch, batch=batch, ny=ny, tau=tau, thres=thres, p=p, seed=seed, random_state=random_state, nonlinear=nonlinear, obj_type=obj_type, decay=decay)
 
     # Track traning time
     t0 = time()
     # Train teh model with data s_rt_wt
     BCM_data.fit(s_rt_wt)
-    print("done in %0.3fs" % (time()-t0))
+    print(BCM_data.w_)
+
+    print("done in %0.3fs" % (time() - t0))
 
     # Convert list object to array
-    plt_range = n_epoch * len(s_rt_wt[:,0])
+    plt_range = n_epoch * len(s_rt_wt[:, 0])
     BCM_data_thres = np.vstack(BCM_data.thres)
     BCM_data_out = np.vstack(BCM_data.y_thres)
     BCM_data_w = np.vstack(BCM_data.w_track)
@@ -208,22 +229,22 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
     n_row = 1
     n_column = ny
 
-    BCM_data_titles= ["BCM unit %d" % i for i in range (ny)]
+    BCM_data_titles = ["BCM unit %d" % i for i in range(ny)]
 
     # Plot y and threshold over iterations
     for i in range(ny):
-        plt.subplot(n_row,n_column,i+1)
-        plt.plot(BCM_data_out[:plt_range,i],'g-',label = 'output')
-        plt.plot(BCM_data_thres[:plt_range,i],'r--',label = 'threshold')
+        plt.subplot(n_row, n_column, i + 1)
+        plt.plot(BCM_data_out[:plt_range, i], 'g-', label='output')
+        plt.plot(BCM_data_thres[:plt_range, i], 'r--', label='threshold')
         plt.title(BCM_data_titles[i])
 
-    plt.legend(loc = 'upper right')
+    plt.legend(loc='upper right')
 
     plt.figure()
 
     # Plot weights over iterations 
 
-    BCM_data_titles= ["BCM weights %d" % i for i in range (len(BCM_data_w.T))]
+    BCM_data_titles = ["BCM weights %d" % i for i in range(len(BCM_data_w.T))]
 
     # Plot evolvement of weights for 2dimension data and final weight for high d data
     if s_rt_wt.shape[1] > 2:
@@ -231,40 +252,39 @@ def bcm_train(s_rt_wt,eta = 0.0001, n_epoch = 10, batch = 1, ny = 2,tau = 200, t
         w = 14
         BCMdigits = []
         for i in range(ny):
-            BCMdigits_tmp = BCM_data.w_[:,i];
-            BCMdigits.append(BCMdigits_tmp.reshape(h,w))
-            
-        BCMdigits_titles = ["BCMdigits %d" % i for i in range (ny)]
-        plot_gallery(BCMdigits,BCMdigits_titles,h,w,n_row= 1, n_col=2)
+            BCMdigits_tmp = BCM_data.w_[:, i];
+            BCMdigits.append(BCMdigits_tmp.reshape(h, w))
+
+        BCMdigits_titles = ["BCMdigits %d" % i for i in range(ny)]
+        plot_gallery(BCMdigits, BCMdigits_titles, h, w, n_row=1, n_col=2)
     else:
         f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row')
-        ax1.plot(BCM_data_w[:,0],'r',label = 'weight')
-        ax1.set_title("BCM unit %d , weights %d" % (0,0))
-        ax2.plot(BCM_data_w[:,2],'r',label = 'weight')
-        ax2.set_title("BCM unit %d , weights %d" % (1,0))
-        ax3.plot(BCM_data_w[:,1],'r',label = 'weight')
-        ax3.set_title("BCM unit %d , weights %d" % (0,1))
+        ax1.plot(BCM_data_w[:, 0], 'r', label='weight')
+        ax1.set_title("BCM unit %d , weights %d" % (0, 0))
+        ax2.plot(BCM_data_w[:, 2], 'r', label='weight')
+        ax2.set_title("BCM unit %d , weights %d" % (1, 0))
+        ax3.plot(BCM_data_w[:, 1], 'r', label='weight')
+        ax3.set_title("BCM unit %d , weights %d" % (0, 1))
         ax3.set_xlabel('# of iterations')
-        ax4.plot(BCM_data_w[:,3],'r',label = 'weight')
-        ax4.set_title("BCM unit %d , weights %d" % (1,1))
+        ax4.plot(BCM_data_w[:, 3], 'r', label='weight')
+        ax4.set_title("BCM unit %d , weights %d" % (1, 1))
         ax4.set_xlabel('# of iterations')
 
     # plot the objective function
     plt.figure()
     for i in range(ny):
-        plt.subplot(n_row,n_column,i+1)
-        plt.plot(BCM_data_obj[:plt_range,i])
+        plt.subplot(n_row, n_column, i + 1)
+        plt.plot(BCM_data_obj[:plt_range, i])
         plt.title(BCM_data_titles[i])
         plt.xlabel('# of iterations')
-        #plt.axis([0,plt_range,-1000,1000])
-        BCM_data_titles= ["BCM %d objective function " % i for i in range (len(BCM_data_w.T))]
-
+        # plt.axis([0,plt_range,-1000,1000])
+        BCM_data_titles = ["BCM %d objective function " % i for i in range(len(BCM_data_w.T))]
 
     return BCM_data
 
-# Plot the weights trajectory on top of objective function landscape
-def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_select = None, ori_w = 0):
 
+# Plot the weights trajectory on top of objective function landscape
+def bcm_obj(s_rt_wt, w_min, w_max, reso, para, obj_select=None, nonlinear_select=None, ori_w=0):
     """
     Parameter: 
     s_rt_wt: input data, num of samples * dimension
@@ -278,13 +298,13 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
     """
 
     w = np.linspace(w_min, w_max, reso)
-    wx,wy = np.meshgrid(w, w)
+    wx, wy = np.meshgrid(w, w)
     w = np.vstack((wx.ravel(), wy.ravel()))
     obj_choice = ['QBCM', 'kurtosis']
     nonlinear_choice = ['Relu', 'Sigmoid', 'None']
 
     # parameter passed through para
-    p = para[0]   
+    p = para[0]
     ny = para[1]
     tau = para[2]
     batch = para[3]
@@ -296,7 +316,7 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
     # if nolinearty and objective defined, train for a specific case, otherwise, train all the combinations
     if obj_select == None:
         n_row = len(obj_choice)
-    else: 
+    else:
         n_row = 1
         obj_index = obj_choice.index(obj_select)
 
@@ -314,18 +334,17 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
             if (n_row + n_col) > 2:
                 obj_type = obj_choice[i]
                 nonlinear = nonlinear_choice[j]
-                para_index = i* n_col + j
+                para_index = i * n_col + j
             else:
                 obj_type = obj_select
                 nonlinear = nonlinear_select
-                para_index = obj_index * len(nonlinear_choice) + nonlinear_index 
+                para_index = obj_index * len(nonlinear_choice) + nonlinear_index
 
             obj_landscape = obj(s_rt_wt, w, obj_type=obj_type, nonlinear=nonlinear)
             title_set = [obj_type, nonlinear]
 
-            nbins=20
-            levels = np.percentile(obj_landscape, np.linspace(0,100,nbins))
-
+            nbins = 20
+            levels = np.percentile(obj_landscape, np.linspace(0, 100, nbins))
 
             with sns.axes_style('white'):
                 if (n_row + n_col) > 2:
@@ -333,7 +352,8 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
                 else:
                     g = ax
 
-                c = g.contour(wx, wy, obj_landscape.reshape(wx.shape), levels=levels, zorder=-10, cmap=plt.cm.get_cmap('viridis'))
+                c = g.contour(wx, wy, obj_landscape.reshape(wx.shape), levels=levels, zorder=-10,
+                              cmap=plt.cm.get_cmap('viridis'))
                 g.plot(s_rt_wt[:, 0], s_rt_wt[:, 1], '.k', ms=4)
                 g.set_aspect(1)
 
@@ -342,7 +362,9 @@ def bcm_obj(s_rt_wt , w_min , w_max , reso , para, obj_select = None, nonlinear_
 
             # Training with BCM local learning rule
 
-            bcm_data = bcm(eta=eta[para_index], n_epoch=n_epoch[para_index], batch=batch, ny=ny, tau=tau, thres=0, p=p, random_state=None, shuffle=True, nonlinear=nonlinear, obj_type=obj_type, decay=decay[para_index])
+            bcm_data = bcm(eta=eta[para_index], n_epoch=n_epoch[para_index], batch=batch, ny=ny, tau=tau, thres=0, p=p,
+                           random_state=None, nonlinear=nonlinear, obj_type=obj_type,
+                           decay=decay[para_index])
 
             bcm_data.fit(s_rt_wt)
             bcm_data_w = np.vstack(bcm_data.w_track)
